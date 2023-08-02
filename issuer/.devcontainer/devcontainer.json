@@ -1,0 +1,14 @@
+{
+	"name": "java-oauth-server",
+	"image": "maven:3.8.5-openjdk-8",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"vscjava.vscode-java-pack"
+			]
+		}
+	},
+	"workspaceMount": "source=${localWorkspaceFolder},target=/workspace/,type=bind",
+	"workspaceFolder": "/workspace",
+	"postCreateCommand": "sh /workspace/shells/setup.sh"
+}
