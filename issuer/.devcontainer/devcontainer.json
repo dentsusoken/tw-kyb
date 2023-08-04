@@ -1,6 +1,7 @@
 {
 	"name": "java-oauth-server",
-	"image": "maven:3.8.5-openjdk-8",
+	"dockerComposeFile": ["../docker-compose.yml"],
+	"service": "java-oauth-server",
 	"customizations": {
 		"vscode": {
 			"extensions": [
@@ -8,7 +9,6 @@
 			]
 		}
 	},
-	"workspaceMount": "source=${localWorkspaceFolder},target=/workspace/,type=bind",
 	"workspaceFolder": "/workspace",
-	"postCreateCommand": "sh /workspace/shells/setup.sh"
+	"forwardPorts": [8080]
 }
