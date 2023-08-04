@@ -3,7 +3,7 @@ export default function Home() {
     <main>
       <div>
         <p className="text-3xl font-bold text-blue-500 text-center">
-          Hello World!!!
+          Hello KYB/KYC!!!
         </p>
       </div>
     </main>
