@@ -4,6 +4,7 @@ import { SafeAreaView, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { AuthStackNavigator } from './AuthStackNavigator';
 import { TagStackNavigator } from './TagStackNavigator';
+import { DemoStackNavigator } from './DemoStackNavigator'
 import { useAuthState } from '@/hooks/useAuthState';
 
 export const RootNavigator: FC = () => {
@@ -18,7 +19,8 @@ export const RootNavigator: FC = () => {
   }
   return (
     <NavigationContainer>
-      {user?.uid ? <TagStackNavigator /> : <AuthStackNavigator />}
+      {/* {user?.uid ? <TagStackNavigator /> : <AuthStackNavigator />} */}
+      {user?.uid ? <DemoStackNavigator /> : <AuthStackNavigator />}
     </NavigationContainer>
   );
 };
