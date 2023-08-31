@@ -54,10 +54,10 @@ export const QRScanScreen: FC = () => {
         <View
           style={[tw('flex flex-col justify-center items-center')]}
         >
-          <Text style={[tw('text-white text-2xl')]}>Scan Result</Text>
-          <Text style={[tw('bg-white mx-2 py-4')]}>
+          <Text style={[tw('text-white text-2xl')]}>{credentialOfferParams ? "Scan Result" : "Faild to Scan"}</Text>
+          {credentialOfferParams && <Text style={[tw('bg-white mx-2 py-4')]}>
             {JSON.stringify(credentialOfferParams, null, 2)}
-          </Text>
+          </Text>}
           <Button title={'Tap to Scan Again'} onPress={() => setScanned(false)} />
         </View>
       }
