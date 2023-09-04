@@ -21,7 +21,7 @@ export const DemoMenu: FC<Props> = ({ navigation }) => {
       <Title first="Demo" last="Menu" />
       <TouchableOpacity
         style={tw('mt-2')}
-        onPress={() => navigation.navigate('QRScan')}
+        onPress={() => navigation.navigate('QRScanNav')}
       >
         <MaterialCommunityIcons name="qrcode" size={40} color="#5f9ea0" />
       </TouchableOpacity>

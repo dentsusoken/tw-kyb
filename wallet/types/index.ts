@@ -30,4 +30,5 @@ export type RootStackParamList = {
   EditTask: undefined;
   DemoMenu: undefined
   QRScan: undefined;
+  QRScanNav: undefined;
 };

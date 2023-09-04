@@ -46,7 +46,7 @@ export const DemoStackNavigator: FC = () => {
         }}
       >
         <Stack.Screen name="DemoMenu" component={DemoMenu} />
-        <Stack.Screen name="QRScan" component={QRScanStackNavigator} />
+        <Stack.Screen name="QRScanNav" component={QRScanStackNavigator} />
       </Stack.Group>
     </Stack.Navigator>
   );
