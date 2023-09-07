@@ -12,8 +12,9 @@ type MakeAuthRequestInput = {
 };
 
 type MakeAuthRequestOutput = {
-  uri: string;
+  url: string;
   codeVerifier: string;
+  redirectUri: string;
 };
 
 export const makeAuthRequestAsync = async ({
@@ -37,7 +38,7 @@ export const makeAuthRequestAsync = async ({
   if (issuerState) {
     params.issuer_state = issuerState;
   }
-  const uri = `${baseUri}?${buildQueryString(params)}`;
+  const url = `${baseUri}?${buildQueryString(params)}`;
 
-  return { uri, codeVerifier };
+  return { url, codeVerifier, redirectUri };
 };

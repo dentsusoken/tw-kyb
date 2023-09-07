@@ -1,8 +1,17 @@
 import { describe, it, expect } from 'vitest';
 
 import * as queryParams from './queryParams';
+import * as qs from 'qs';
 
 describe('queryParams', () => {
+  it('qs.stringify', () => {
+    const obj = { bbb: '1' };
+    const objStr = JSON.stringify(obj);
+    const encodedObjStr = encodeURIComponent(objStr);
+
+    expect(qs.stringify(objStr)).toEqual(encodedObjStr);
+  });
+
   it('buildQueryString', () => {
     expect(
       queryParams.buildQueryString({ aaa: '1', bbb: 'a', ccc: 'true' }),
