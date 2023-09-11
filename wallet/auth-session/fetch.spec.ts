@@ -2,9 +2,11 @@ import { describe, it, expect } from 'vitest';
 
 import { fetchAsync } from './fetch';
 
+const baseURL = 'https://tw-isid-test.web.app';
+
 describe('fetch', () => {
   it('fetchAsync for GET', async () => {
-    const url = 'http://127.0.0.1:5000/hello';
+    const url = `${baseURL}/hello`;
     const ret: string = await fetchAsync(url, {
       method: 'GET',
       dataType: 'query',
@@ -14,7 +16,7 @@ describe('fetch', () => {
   });
 
   it('fetchAsync for POST/form', async () => {
-    const url = 'http://127.0.0.1:5000/add';
+    const url = `${baseURL}/add`;
     const ret: string = await fetchAsync(url, {
       method: 'POST',
       dataType: 'form',
@@ -25,7 +27,7 @@ describe('fetch', () => {
   });
 
   it('fetchAsync for POST/json', async () => {
-    const url = 'http://127.0.0.1:5000/addJson';
+    const url = `${baseURL}/addJson`;
     const ret: {
       message?: string;
       result?: string;
@@ -34,7 +36,7 @@ describe('fetch', () => {
       dataType: 'json',
       body: JSON.stringify({ arg1: '1', arg2: '2' }),
     });
-    console.log('ret', ret);
+    //console.log('ret', ret);
     expect(ret).toEqual({ result: 3 });
   });
 });
