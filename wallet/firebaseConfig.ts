@@ -8,12 +8,12 @@ import { getFirestore } from 'firebase/firestore';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: 'AIzaSyBGD1O8tMPIQzZsTSNKSDt5wmbxN4kjA20',
-  authDomain: 'tw-wallet.firebaseapp.com',
-  projectId: 'tw-wallet',
-  storageBucket: 'tw-wallet.appspot.com',
-  messagingSenderId: '730375941657',
-  appId: '1:730375941657:web:7fcad93079a24b4c814488',
+  apiKey: process.env.EXPO_PUBLIC_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_STRAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_APP_ID,
 };
 
 // Initialize Firebase
