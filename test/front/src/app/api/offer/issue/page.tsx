@@ -8,7 +8,7 @@ export default function Pagesess() {
   var S = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   var N = 16;
   const params = {
-    credential_issuer: window ? window.location.href : '',
+    credential_issuer: window ? window.location.origin : '',
     credentials: [
       {
         format: 'vc+sd-jwt',
@@ -25,9 +25,6 @@ export default function Pagesess() {
       },
     },
   };
-
-  const uriParams = encodeURIComponent(JSON.stringify(params));
-  const uri = `${redirectUri}?credential_offer=${uriParams}`;
 
   const onClick = () => {
     const uriParams = encodeURIComponent(JSON.stringify(params));

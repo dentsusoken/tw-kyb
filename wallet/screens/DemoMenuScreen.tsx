@@ -20,6 +20,10 @@ type Props = {
 export const DemoMenu: FC<Props> = ({ navigation }) => {
   const [scanned, setScanned] = useState(false);
   const { execCredentialOffer, credentialOfferParams } = useCredentialOfferState();
+  const exec = async () => {
+    await execCredentialOffer();
+    setScanned(true);
+  }
 
   return (
     <SafeAreaView style={tw('flex-1 bg-gray-100 items-center')}>
@@ -33,7 +37,7 @@ export const DemoMenu: FC<Props> = ({ navigation }) => {
             <MaterialCommunityIcons name="qrcode" size={40} color="#5f9ea0" />
           </TouchableOpacity>
           <Text style={tw('text-gray-700 mt-2 mb-5')}>Scan QR code</Text>
-          <TouchableOpacity style={tw('mt-2')} onPress={execCredentialOffer}>
+          <TouchableOpacity style={tw('mt-2')} onPress={exec}>
             <MaterialCommunityIcons name="link" size={40} color="#5f9ea0" />
           </TouchableOpacity>
           <Text style={tw('text-gray-700 mt-2 mb-5')}>Deep Link</Text>
@@ -41,8 +45,8 @@ export const DemoMenu: FC<Props> = ({ navigation }) => {
       )}
       {scanned && (
         <View style={[tw('flex flex-col justify-center items-center')]}>
-          <Text style={[tw('text-white text-2xl')]}>
-            {credentialOfferParams ? 'Scan Result' : 'Faild to Scan'}
+          <Text style={[tw('text-2xl')]}>
+            {credentialOfferParams ? 'Result' : 'Faild'}
           </Text>
           {credentialOfferParams && (
             <Text style={[tw('bg-white mx-2 py-4')]}>
