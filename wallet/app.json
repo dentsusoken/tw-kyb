@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "wallet",
-    "scheme":["openid-credential-offer"],
+    "scheme":"haip",
     "slug": "wallet",
     "version": "1.0.0",
     "orientation": "portrait",
