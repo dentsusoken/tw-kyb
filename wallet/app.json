@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "wallet",
+    "scheme":"haip",
     "slug": "wallet",
     "version": "1.0.0",
     "orientation": "portrait",

@@ -28,7 +28,8 @@
     "react-native-screens": "~3.22.0",
     "recoil": "^0.7.7",
     "tailwind-rn": "^3.0.1",
-    "expo-web-browser": "~12.3.2"
+    "expo-web-browser": "~12.3.2",
+    "expo-linking": "~5.0.2"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
