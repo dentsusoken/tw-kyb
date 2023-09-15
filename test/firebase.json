@@ -21,6 +21,11 @@
       "source": "/addJson",
       "function": "addJson",
       "region": "asia-northeast1"
+    },
+    {
+      "source": "/credentialOfferIssue",
+      "function": "credentialOfferIssue",
+      "region": "asia-northeast1"
     }
     ]
   },
