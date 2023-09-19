@@ -2,33 +2,37 @@ import { makeAuthDetail4VcSdJwt } from './authDetail';
 import type { Crypto } from './crypto';
 import { buildCodeAsync } from './pkce';
 import { Params, buildQueryString } from './queryParams';
+import { generateRandom } from './cryptoUtils';
 
 type MakeAuthRequestInput = {
-  baseUri: string;
+  baseUrl: string;
   clientId: string;
   redirectUri: string;
   issuerState?: string;
   crypto: Crypto;
 };
 
-type MakeAuthRequestOutput = {
+export type MakeAuthRequestOutput = {
   url: string;
+  state: string;
   codeVerifier: string;
   redirectUri: string;
 };
 
 export const makeAuthRequestAsync = async ({
-  baseUri,
+  baseUrl: baseUri,
   clientId,
   redirectUri,
   issuerState,
   crypto,
 }: MakeAuthRequestInput): Promise<MakeAuthRequestOutput> => {
   const { codeVerifier, codeChallenge } = await buildCodeAsync(128, crypto);
+  const state = await generateRandom(128, crypto);
   const authDetails = JSON.stringify([makeAuthDetail4VcSdJwt()]);
   const params: Params = {
     response_type: 'code',
     client_id: clientId,
+    state,
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
     authorization_details: authDetails,
@@ -40,5 +44,5 @@ export const makeAuthRequestAsync = async ({
   }
   const url = `${baseUri}?${buildQueryString(params)}`;
 
-  return { url, codeVerifier, redirectUri };
+  return { url, state, codeVerifier, redirectUri };
 };

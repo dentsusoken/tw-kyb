@@ -3,11 +3,6 @@ import { Crypto } from './crypto';
 import * as base64Utils from './base64Utils';
 import * as cryptoUtils from './cryptoUtils';
 
-export const generateRandom = (size: number, crypto: Crypto): string => {
-  const bytes = crypto.getRandomBytes(size);
-
-  return cryptoUtils.convertBytesToString(bytes);
-};
 /**
  * Proof key for Code Exchange by OAuth Public Clients (RFC 7636), Section 4.1
  * [Section 4.1](https://tools.ietf.org/html/rfc7636#section-4.1)
@@ -30,7 +25,7 @@ export const buildCodeAsync = async (
   size: number,
   crypto: Crypto,
 ): Promise<{ codeVerifier: string; codeChallenge: string }> => {
-  const codeVerifier = generateRandom(size, crypto);
+  const codeVerifier = cryptoUtils.generateRandom(size, crypto);
   const codeChallenge = await deriveChallengeAsync(codeVerifier, crypto);
 
   return { codeVerifier, codeChallenge };
