@@ -4,10 +4,15 @@ WebBrowser.maybeCompleteAuthSession();
 
 let authLock: boolean = false;
 
+export type AuthSessionResult = {
+  type: string;
+  url?: string;
+};
+
 export const openAuthSessionAsync = async (
   url: string,
   redirectUri: string,
-): Promise<{ type: string; url?: string }> => {
+): Promise<AuthSessionResult> => {
   if (authLock) {
     return { type: 'locked' };
   }

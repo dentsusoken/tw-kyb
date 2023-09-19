@@ -1,3 +1,5 @@
+import { Crypto } from './crypto';
+
 const CHARSET =
   'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 
@@ -8,4 +10,10 @@ export const convertBytesToString = (bytes: Uint8Array): string => {
     state.push(CHARSET[index]);
   }
   return state.join('');
+};
+
+export const generateRandom = (size: number, crypto: Crypto): string => {
+  const bytes = crypto.getRandomBytes(size);
+
+  return convertBytesToString(bytes);
 };

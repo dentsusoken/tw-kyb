@@ -81,6 +81,7 @@ export const fetchAsync = async <T>(
   const response = await fetch(correctedUrl, request);
 
   const contentType = response.headers.get('content-type');
+
   if (contentType?.includes('application/json')) {
     return response.json();
   }
