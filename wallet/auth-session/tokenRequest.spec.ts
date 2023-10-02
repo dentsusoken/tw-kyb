@@ -4,6 +4,7 @@ import * as fetch from './fetch';
 
 import * as tokenRequest from './tokenRequest';
 import * as sleep from './sleep';
+import { getCurrentTimeInSeconds } from './dateUtils';
 
 describe('tokenRequest', () => {
   it('makeAuthTokenRequest', () => {
@@ -54,7 +55,7 @@ describe('tokenRequest', () => {
   it('fetchAuthTokenRequestAsync', async () => {
     const accessToken = 'abcd';
     const tokenType = 'bearer';
-    const issuedAt = Date.now();
+    const issuedAt = getCurrentTimeInSeconds();
     const expiresIn = 86400;
     const cNonce = 'efg';
     const cNonceExpiresIn = 87000;
@@ -106,7 +107,7 @@ describe('tokenRequest', () => {
   it('fetchAuthTokenRequestAsync when error is authorization_pending', async () => {
     const accessToken = 'abcd';
     const tokenType = 'bearer';
-    const issuedAt = Date.now();
+    const issuedAt = getCurrentTimeInSeconds();
     const expiresIn = 86400;
     const cNonce = 'efg';
     const cNonceExpiresIn = 87000;
@@ -159,7 +160,7 @@ describe('tokenRequest', () => {
   it('fetchAuthTokenRequestAsync when error is slow_down', async () => {
     const accessToken = 'abcd';
     const tokenType = 'bearer';
-    const issuedAt = Date.now();
+    const issuedAt = getCurrentTimeInSeconds();
     const expiresIn = 86400;
     const cNonce = 'efg';
     const cNonceExpiresIn = 87000;
@@ -213,5 +214,22 @@ describe('tokenRequest', () => {
       cNonceExpiresIn,
       rawResponse: res,
     });
+  });
+
+  it('fetchAuthTokenRequestAsync when error is retry_max_exceeded', async () => {
+    vi.spyOn(sleep, 'sleep').mockResolvedValue(undefined);
+    vi.spyOn(fetch, 'fetchAsync').mockResolvedValue({
+      error: 'authorization_pending',
+    });
+
+    await expect(
+      tokenRequest.fetchAuthTokenRequestAsync('https://hoge', {
+        dataType: 'form',
+        method: 'POST',
+        body: {},
+      }),
+    ).rejects.toThrow(
+      'Authorization Token Request Error: retry_max_exceeded 100',
+    );
   });
 });

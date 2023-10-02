@@ -2,6 +2,8 @@ import type { FetchRequest } from './fetch';
 import { Params } from './queryParams';
 import { fetchAsync } from './fetch';
 import { sleep } from './sleep';
+import { getCurrentTimeInSeconds } from './dateUtils';
+import { validIssuedAt } from './dateUtils';
 
 type MakeAuthTokenRequestInput = {
   clientId: string;
@@ -83,10 +85,16 @@ export const fetchAuthTokenRequestAsync = async (
     const res: Record<string, any> = await fetchAsync(url, fetchRequest);
 
     if (!res.error) {
+      if (res.issued_at && !validIssuedAt(res.issued_at)) {
+        throw new Error(
+          `Authorization Token Request Error: invalid_issued_at ${res.issued_at} in the future`,
+        );
+      }
+
       return {
         accessToken: res.access_token,
         tokenType: res.token_type,
-        issuedAt: res.issued_at,
+        issuedAt: res.issued_at || getCurrentTimeInSeconds(),
         expiresIn: res.expires_in,
         cNonce: res.c_nonce,
         cNonceExpiresIn: res.c_nonce_expires_in,

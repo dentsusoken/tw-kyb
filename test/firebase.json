@@ -22,7 +22,14 @@
       "function": "addJson",
       "region": "asia-northeast1"
     }
-    ]
+    ],
+    "headers": [ {
+      "source": "/.well-known/openid-configuration",
+      "headers": [ {
+        "key": "Access-Control-Allow-Origin",
+        "value": "*"
+      } ]
+    } ]
   },
   "functions": [
     {
