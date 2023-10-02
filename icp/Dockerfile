@@ -1,4 +1,5 @@
-FROM mcr.microsoft.com/devcontainers/typescript-node:0-18
+ARG VARIANT="18-bullseye"
+FROM mcr.microsoft.com/vscode/devcontainers/typescript-node:0-${VARIANT}
 
 RUN sudo apt update
 RUN sudo apt install -y cmake
@@ -23,3 +24,4 @@ RUN echo '"\\e[B": history-search-forward' >> ~/.inputrc
 RUN sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)"
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 RUN ~/.cargo/bin/rustup target add wasm32-unknown-unknown
+RUN yarn global add firebase-tools

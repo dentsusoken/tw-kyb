@@ -8,6 +8,9 @@
   "customizations": {
     "vscode": {
       "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
         "rust-lang.rust-analyzer"
       ]
     }
