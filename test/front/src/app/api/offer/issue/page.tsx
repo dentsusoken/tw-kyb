@@ -11,7 +11,7 @@ export default function Pagesess() {
   const [issuerState, setIssuerState] = useState(true);
   const [preAuthCodeGrant, setPreAuthCodeGrant] = useState(false);
   const [pinReq, setPinReq] = useState(false);
-  const [pinLen, setPinLen] = useState(0);
+  const [pinLen, setPinLen] = useState('0');
   const [credentials, setcredentials] = useState(
     JSON.stringify(
       [
@@ -118,7 +118,7 @@ export default function Pagesess() {
                   id="pinLen"
                   className="w-10 outline"
                   value={pinLen}
-                  onChange={(e) => setPinLen(Number(e.currentTarget.value))}
+                  onChange={(e) => setPinLen(e.currentTarget.value)}
                 />
               </div>
               <div className="flex gap-4">

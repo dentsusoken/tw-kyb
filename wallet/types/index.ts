@@ -28,7 +28,8 @@ export type RootStackParamList = {
   TaskStack: undefined;
   CreateTask: undefined;
   EditTask: undefined;
-  DemoMenu: undefined
+  DemoMenu: undefined;
   QRScan: undefined;
   QRScanNav: undefined;
+  CredentialOfferResult: undefined;
 };

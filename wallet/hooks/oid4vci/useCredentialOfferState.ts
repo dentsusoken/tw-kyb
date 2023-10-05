@@ -5,6 +5,10 @@ import { Alert } from 'react-native';
 import { openAuthSessionAsync } from '@/auth-session/authSession';
 import { getQueryParams } from '@/auth-session/queryParams';
 import * as Linking from 'expo-linking';
+import { hostingBaseUri } from '@/consts';
+
+const redirectUri = Linking.createURL('');
+const endpointUri = `${hostingBaseUri}/api/offer/issue?redirect_uri=${redirectUri}`;
 
 export const useCredentialOfferState = () => {
   const [credentialOfferParams, setCredentialOfferParams] =
@@ -13,8 +17,7 @@ export const useCredentialOfferState = () => {
 
   const execCredentialOffer = async () => {
     setCredentialOfferParams(() => undefined);
-    const uri = `https://tw-isid-test.web.app/api/offer/issue?redirect_uri=${redirectUri}`;
-    const result = await openAuthSessionAsync(uri, redirectUri);
+    const result = await openAuthSessionAsync(endpointUri, redirectUri);
     result.url && parseUri(result.url);
   };
 
