@@ -1,6 +1,7 @@
 import * as functions from 'firebase-functions';
 import * as logger from 'firebase-functions/logger';
-import * as crypto from 'crypto';
+import { createIssuerState } from './datastore/IssuerState';
+import { createPreAuthCode } from './datastore/PreAuthCodeStore';
 
 type Grants = {
   authorization_code?: {
@@ -15,6 +16,7 @@ type Grants = {
 export const credentialOfferIssue = functions
   .region('asia-northeast1')
   .https.onRequest((request, response) => {
+    response.set('Access-Control-Allow-Origin', '*');
     const bodyJson = JSON.parse(request.body);
     logger.log('method:', request.method);
     if (request.method !== 'POST') {
@@ -29,28 +31,20 @@ export const credentialOfferIssue = functions
     }
 
     try {
-      const S =
-        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      const N = 16;
       const grants: Grants = {};
 
       if (bodyJson.authCodeGrant) {
         grants.authorization_code = {};
         if (bodyJson.issuerState) {
-          grants.authorization_code.issuer_state = Array.from(
-            crypto.getRandomValues(new Uint8Array(N))
-          )
-            .map((n) => S[n % S.length])
-            .join('');
+          grants.authorization_code.issuer_state = createIssuerState();
         }
       }
       if (bodyJson.preAuthCodeGrant) {
         grants['urn:ietf:params:oauth:grant-type:pre-authorized_code'] = {
-          'pre-authorized_code': Array.from(
-            crypto.getRandomValues(new Uint8Array(N))
-          )
-            .map((n) => S[n % S.length])
-            .join(''),
+          'pre-authorized_code': createPreAuthCode(
+            bodyJson.pinReq,
+            bodyJson.pinLen
+          ),
         };
         if (bodyJson.pinReq) {
           grants[
