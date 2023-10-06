@@ -1,0 +1,2 @@
+type Result = variant { Ok : vec nat8; Err : text };
+service : { public_key : () -> (Result); sign : (vec nat8) -> (Result) }
