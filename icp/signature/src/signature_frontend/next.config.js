@@ -4,9 +4,9 @@ const canisterIds = require('../../canisterIds');
 canisterIds.exportEnv('NEXT_PUBLIC_');
 
 const nextConfig = {
-  experimental: {
-    appDir: true,
-  },
+  // experimental: {
+  //   appDir: true,
+  // },
   output: 'export',
 };
 
