@@ -2,6 +2,10 @@ const funcs: Record<string, string> = {
   hello: './hello',
   add: './add',
   addJson: './addJson',
+  credentialOfferIssue: './credentialOfferIssue',
+  authorization: './authorization',
+  decision: './decision',
+  token: './token',
 };
 
 for (const name in funcs) {

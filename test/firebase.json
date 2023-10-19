@@ -21,6 +21,26 @@
       "source": "/addJson",
       "function": "addJson",
       "region": "asia-northeast1"
+    },
+    {
+      "source": "/credentialOfferIssue",
+      "function": "credentialOfferIssue",
+      "region": "asia-northeast1"
+    },
+    {
+      "source": "/authorization",
+      "function": "authorization",
+      "region": "asia-northeast1"
+    },
+    {
+      "source": "/decision",
+      "function": "decision",
+      "region": "asia-northeast1"
+    },
+    {
+      "source": "/token",
+      "function": "token",
+      "region": "asia-northeast1"
     }
     ],
     "headers": [ {

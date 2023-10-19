@@ -8,8 +8,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from '@/types';
 import { IconButton } from '@/components/IconButton';
 
-import { QRScanStackNavigator } from "./QRScanStackNavigator"
+import { QRScanStackNavigator } from './QRScanStackNavigator';
 import { DemoMenu } from '@/screens/DemoMenuScreen';
+import { CredentialOfferResultScreen } from '@/screens/CredentialOfferResultScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -47,6 +48,10 @@ export const DemoStackNavigator: FC = () => {
       >
         <Stack.Screen name="DemoMenu" component={DemoMenu} />
         <Stack.Screen name="QRScanNav" component={QRScanStackNavigator} />
+        <Stack.Screen
+          name="CredentialOfferResult"
+          component={CredentialOfferResultScreen}
+        />
       </Stack.Group>
     </Stack.Navigator>
   );

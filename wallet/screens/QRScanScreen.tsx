@@ -9,7 +9,7 @@ import { useCredentialOfferState } from "@/hooks/oid4vci/useCredentialOfferState
 export const QRScanScreen: FC = () => {
   const [hasPermission, setHasPermission] = useState<boolean>(false);
   const [scanned, setScanned] = useState(false);
-  const { credentialOfferParams, parseQr } = useCredentialOfferState();
+  const { credentialOfferParams, parseUri } = useCredentialOfferState();
 
   useEffect(() => {
     const getBarCodeScannerPermissions = async () => {
@@ -22,7 +22,7 @@ export const QRScanScreen: FC = () => {
 
   const handleBarCodeScanned = ({ data }: BarCodeScannerResult) => {
     setScanned(true);
-    parseQr(data);
+    parseUri(data);
   };
 
   if (hasPermission === null) {

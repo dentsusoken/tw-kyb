@@ -3,7 +3,7 @@ export type CredentialOffer = {
     "credentials": unknown[];
     "grants": {
         "authorization_code"?: {
-            "issuer_state": string;
+            "issuer_state"?: string;
         },
         "urn:ietf:params:oauth:grant-type:pre-authorized_code"?: {
             "pre-authorized_code": string;
