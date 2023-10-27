@@ -2,46 +2,48 @@
   "hosting": {
     "public": "front/out",
     "cleanUrls": true,
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [ {
-      "source": "/hello",
-      "function": "hello",
-      "region": "asia-northeast1"
-    },
-    {
-      "source": "/add",
-      "function": "add",
-      "region": "asia-northeast1"
-    },
-    {
-      "source": "/addJson",
-      "function": "addJson",
-      "region": "asia-northeast1"
-    },
-    {
-      "source": "/credentialOfferIssue",
-      "function": "credentialOfferIssue",
-      "region": "asia-northeast1"
-    },
-    {
-      "source": "/authorization",
-      "function": "authorization",
-      "region": "asia-northeast1"
-    },
-    {
-      "source": "/decision",
-      "function": "decision",
-      "region": "asia-northeast1"
-    },
-    {
-      "source": "/token",
-      "function": "token",
-      "region": "asia-northeast1"
-    }
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      {
+        "source": "/hello",
+        "function": "hello",
+        "region": "asia-northeast1"
+      },
+      {
+        "source": "/add",
+        "function": "add",
+        "region": "asia-northeast1"
+      },
+      {
+        "source": "/addJson",
+        "function": "addJson",
+        "region": "asia-northeast1"
+      },
+      {
+        "source": "/credentialOfferIssue",
+        "function": "credentialOfferIssue",
+        "region": "asia-northeast1"
+      },
+      {
+        "source": "/authorization",
+        "function": "authorization",
+        "region": "asia-northeast1"
+      },
+      {
+        "source": "/decision",
+        "function": "decision",
+        "region": "asia-northeast1"
+      },
+      {
+        "source": "/token",
+        "function": "token",
+        "region": "asia-northeast1"
+      },
+      {
+        "source": "/firebase-web-authn-api",
+        "function": "ext-firebase-web-authn-api",
+        "region": "asia-northeast1"
+      }
     ]
   },
   "functions": [
