@@ -7,7 +7,7 @@
     "source.fixAll.eslint": true
   },
   "eslint.workingDirectories": [
-    "/app/front",
-    "/app/functions",
+    "./front",
+    "./functions",
   ]
 }
