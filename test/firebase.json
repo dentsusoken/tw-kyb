@@ -23,6 +23,16 @@
       "region": "asia-northeast1"
     },
     {
+      "source": "/qsGet",
+      "function": "qsGet",
+      "region": "asia-northeast1"
+    },
+    {
+      "source": "/jsonGet",
+      "function": "jsonGet",
+      "region": "asia-northeast1"
+    },
+    {
       "source": "/credentialOfferIssue",
       "function": "credentialOfferIssue",
       "region": "asia-northeast1"
@@ -42,7 +52,14 @@
       "function": "token",
       "region": "asia-northeast1"
     }
-    ]
+    ],
+    "headers": [ {
+      "source": "/.well-known/openid-configuration",
+      "headers": [ {
+        "key": "Access-Control-Allow-Origin",
+        "value": "*"
+      } ]
+    } ]
   },
   "functions": [
     {
