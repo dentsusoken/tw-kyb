@@ -17,11 +17,12 @@ fn http_request_required_cycles(arg: &CanisterHttpRequestArgument) -> u128 {
         * 13
 }
 
+#[allow(dead_code)]
 pub async fn fetch(arg: CanisterHttpRequestArgument) -> Result<HttpResponse, SignatureError> {
     let cycles = http_request_required_cycles(&arg);
     let response = http_request(arg.clone(), cycles)
         .await
-        .map_err(|e| SignatureError::FetchError(e))
+        .map_err(|e| SignatureError::FetchError(e.1))
         .unwrap()
         .0;
     assert_eq!(response.status, 200);

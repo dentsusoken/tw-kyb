@@ -11,8 +11,8 @@ pub fn now() -> SystemTime {
 #[cfg(not(test))]
 pub fn now() -> SystemTime {
     let now = ic_api::time();
-    let secs = now / 1000_000_000;
-    let sub_nanos = (now % 1000_000_000) as u32;
+    let secs = now / 1_000_000_000;
+    let sub_nanos = (now % 1_000_000_000) as u32;
     UNIX_EPOCH + Duration::new(secs, sub_nanos)
 }
 

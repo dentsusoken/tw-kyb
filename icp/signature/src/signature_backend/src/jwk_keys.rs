@@ -1,9 +1,9 @@
 use crate::now;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-#[derive(Debug, Deserialize, Eq, PartialEq, Clone)]
+#[derive(Debug, Deserialize, Serialize, Eq, PartialEq, Clone)]
 pub struct JwkKey {
     pub e: String,
     pub alg: String,
@@ -41,7 +41,17 @@ impl JwkKeys {
     }
 
     pub fn is_valid(&self) -> bool {
-        self.fetch_time.elapsed().unwrap() <= self.max_age
+        !self.key_map.is_empty() && self.fetch_time.elapsed().unwrap() <= self.max_age
+    }
+}
+
+impl Default for JwkKeys {
+    fn default() -> Self {
+        Self {
+            max_age: Duration::new(0, 0),
+            key_map: HashMap::new(),
+            fetch_time: UNIX_EPOCH,
+        }
     }
 }
 
@@ -90,7 +100,7 @@ mod tests {
         let keys = JwkKeys::new(Duration::from_secs(60), vec![key1.clone(), key2.clone()]);
         assert_eq!(&key1, keys.get_key(&key1.kid).unwrap());
         assert_eq!(&key2, keys.get_key(&key2.kid).unwrap());
-        assert_eq!(true, keys.get_key(&"xxx".to_owned()).is_none());
+        assert!(keys.get_key("xxx").is_none());
     }
 
     #[test]
@@ -110,10 +120,16 @@ mod tests {
             n: "n".to_owned(),
         };
         let keys = JwkKeys::new(Duration::from_secs(1), vec![key1.clone(), key2.clone()]);
-        assert_eq!(true, keys.is_valid());
+        assert!(keys.is_valid());
 
         let two_sec = Duration::from_secs(2);
         thread::sleep(two_sec);
-        assert_eq!(false, keys.is_valid());
+        assert!(!keys.is_valid());
+    }
+
+    #[test]
+    fn test_jwk_keys_default() {
+        let keys = JwkKeys::default();
+        assert!(!keys.is_valid());
     }
 }

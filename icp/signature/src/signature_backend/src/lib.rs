@@ -1,3 +1,4 @@
+use crate::error::SignatureError;
 use ic_cdk::{
     api::management_canister::ecdsa::{
         ecdsa_public_key, sign_with_ecdsa, EcdsaCurve, EcdsaKeyId, EcdsaPublicKeyArgument,
@@ -5,7 +6,7 @@ use ic_cdk::{
     },
     export_candid, query, update,
 };
-//use std::cell::RefCell;
+use std::cell::RefCell;
 use std::time::SystemTime;
 
 //use std::str::FromStr;
@@ -16,11 +17,14 @@ mod error;
 mod fetch_keys;
 mod http_request;
 mod jwk_keys;
+mod jwt;
 mod now;
 
-// thread_local! {
-//     static NOW: RefCell<u64> = RefCell::new(ic_api::time());
-// }
+use jwk_keys::JwkKeys;
+
+thread_local! {
+    static JWK_KEYS: RefCell<JwkKeys> = RefCell::new(JwkKeys::default());
+}
 
 #[update]
 async fn public_key() -> Result<Vec<u8>, String> {
@@ -55,9 +59,19 @@ async fn sign(message_hash: Vec<u8>) -> Result<Vec<u8>, String> {
     Ok(res.signature)
 }
 
+async fn refresh_keys() -> Result<(), SignatureError> {
+    let is_valid = JWK_KEYS.with(|keys| keys.borrow().is_valid());
+    if !is_valid {
+        let new_keys = fetch_keys::fetch_keys().await?;
+        JWK_KEYS.with(|keys| keys.replace(new_keys));
+    }
+    Ok(())
+}
+
 #[update]
-async fn fetch_keys() -> String {
-    format!("{:?}", fetch_keys::fetch_keys().await.unwrap())
+async fn fetch_keys() -> Result<String, SignatureError> {
+    refresh_keys().await?;
+    Ok(JWK_KEYS.with(|keys| format!("{:?}", keys.borrow())))
 }
 
 #[query]

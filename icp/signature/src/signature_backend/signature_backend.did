@@ -1,11 +1,28 @@
-type Result = variant { Ok : vec nat8; Err : text };
+type RejectionCode = variant {
+  NoError;
+  CanisterError;
+  SysTransient;
+  DestinationInvalid;
+  Unknown;
+  SysFatal;
+  CanisterReject;
+};
+type Result = variant { Ok : text; Err : SignatureError };
+type Result_1 = variant { Ok : vec nat8; Err : text };
+type SignatureError = variant {
+  NoMaxAgeSpecified;
+  NonNumericMaxAge : text;
+  FetchError : record { RejectionCode; text };
+  MaxAgeValueEmpty;
+  NoCacheControlHeader;
+};
 type SystemTime = record {
   nanos_since_epoch : nat32;
   secs_since_epoch : nat64;
 };
 service : {
-  fetch_keys : () -> (text);
+  fetch_keys : () -> (Result);
   now : () -> (SystemTime) query;
-  public_key : () -> (Result);
-  sign : (vec nat8) -> (Result);
+  public_key : () -> (Result_1);
+  sign : (vec nat8) -> (Result_1);
 }
