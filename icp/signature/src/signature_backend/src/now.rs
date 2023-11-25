@@ -1,19 +1,23 @@
-#[allow(unused_imports)]
 use ic_cdk::api as ic_api;
-#[allow(unused_imports)]
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 #[cfg(test)]
-pub fn now() -> SystemTime {
-    SystemTime::now()
+use mockall::automock;
+
+#[cfg_attr(test, automock)]
+pub trait Now: Send + Sync {
+    fn now(&self) -> SystemTime;
 }
 
-#[cfg(not(test))]
-pub fn now() -> SystemTime {
-    let now = ic_api::time();
-    let secs = now / 1_000_000_000;
-    let sub_nanos = (now % 1_000_000_000) as u32;
-    UNIX_EPOCH + Duration::new(secs, sub_nanos)
+pub struct ICNow;
+
+impl Now for ICNow {
+    fn now(&self) -> SystemTime {
+        let now = ic_api::time();
+        let secs = now / 1_000_000_000;
+        let sub_nanos = (now % 1_000_000_000) as u32;
+        UNIX_EPOCH + Duration::new(secs, sub_nanos)
+    }
 }
 
 #[cfg(test)]
@@ -22,6 +26,8 @@ mod tests {
 
     #[test]
     fn test_now() {
-        assert!(now() > UNIX_EPOCH);
+        let mut mock = MockNow::new();
+        mock.expect_now().return_const(SystemTime::now());
+        assert!(mock.now() > UNIX_EPOCH);
     }
 }

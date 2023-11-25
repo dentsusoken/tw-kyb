@@ -1,180 +1,177 @@
-use crate::error::SignatureError;
-#[allow(unused_imports)]
-use crate::http_request;
-use crate::jwk_keys::{JwkKey, JwkKeys};
+use std::time::SystemTime;
 
-#[allow(unused_imports)]
+use crate::error::SignatureError;
+use crate::http_request::Fetch;
+use crate::jwk_keys::{JwkKey, JwkKeys, JwkKeysNewArgument};
+use crate::max_age;
+use crate::now::Now;
+use async_trait::async_trait;
 use ic_cdk::api::management_canister::http_request::{
-    CanisterHttpRequestArgument, HttpHeader, HttpMethod,
+    CanisterHttpRequestArgument, HttpHeader, HttpMethod, HttpResponse,
 };
-#[cfg(test)]
-use reqwest::header::HeaderMap;
-use serde::Deserialize;
-use std::num::ParseIntError;
-use std::time::Duration;
+use serde::{Deserialize, Serialize};
 
 const KEYS_URL: &str =
     "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com";
 
-#[derive(Debug, Deserialize)]
-#[allow(dead_code)]
+#[derive(Debug, Serialize, Deserialize)]
 struct KeyResponse {
     keys: Vec<JwkKey>,
 }
 
-pub async fn fetch_keys() -> Result<JwkKeys, SignatureError> {
-    let (keys, cache_control_value) = fetch_keys_internal().await?;
-    let max_age = get_max_age(cache_control_value)?;
+#[cfg_attr(test, mockall::automock)]
+#[async_trait]
+pub trait FetchKeys {
+    async fn fetch_keys(&self) -> Result<JwkKeys, SignatureError> {
+        let response = self.fetch_keys_internal().await?;
+        let keys = self.body_to_keys(&response.body)?;
+        let cache_control_value = self.find_cache_control_value(&response.headers);
+        let fetch_time = self.now();
+        let max_age = max_age::get_max_age(cache_control_value)?;
 
-    Ok(JwkKeys::new(max_age, keys))
+        Ok(JwkKeys::new(JwkKeysNewArgument {
+            keys,
+            fetch_time,
+            max_age,
+        }))
+    }
 
-    //String::from_utf8(response.body).unwrap()
-}
+    async fn fetch_keys_internal(&self) -> Result<HttpResponse, SignatureError>;
 
-#[cfg(not(test))]
-async fn fetch_keys_internal() -> Result<(Vec<JwkKey>, Option<String>), SignatureError> {
-    let arg = CanisterHttpRequestArgument {
-        url: KEYS_URL.to_owned(),
-        max_response_bytes: Some(3000),
-        method: HttpMethod::GET,
-        headers: vec![],
-        body: None,
-        transform: None,
-    };
+    fn now(&self) -> SystemTime;
 
-    let response = http_request::fetch(arg).await?;
-    let keys = body_to_keys(&response.body)?;
-    let cache_control_value = find_cache_control_value(&response.headers);
+    fn body_to_keys(&self, body: &[u8]) -> Result<Vec<JwkKey>, SignatureError> {
+        let key_res: KeyResponse =
+            serde_json::from_slice(body).map_err(|e| SignatureError::SerdeError(e.to_string()))?;
+        Ok(key_res.keys)
+    }
 
-    Ok((keys, cache_control_value))
-}
+    fn find_cache_control_value(&self, headers: &[HttpHeader]) -> Option<String> {
+        let cache_control_header = headers
+            .iter()
+            .find(|&h| String::from("cache-control").eq(&h.name.to_lowercase()));
 
-#[cfg(test)]
-async fn fetch_keys_internal() -> Result<(Vec<JwkKey>, Option<String>), SignatureError> {
-    let response = reqwest::get(KEYS_URL.to_owned())
-        .await
-        .map_err(|e| SignatureError::FetchError(e.to_string()))?;
-
-    let cache_control_value = find_cache_control_value_for_reqwest(response.headers());
-    println!("{:?}", cache_control_value);
-    let keys = response
-        .json::<KeyResponse>()
-        .await
-        .map_err(|e| SignatureError::SerdeError(e.to_string()))?
-        .keys;
-
-    Ok((keys, cache_control_value))
-}
-
-fn body_to_keys(body: &[u8]) -> Result<Vec<JwkKey>, SignatureError> {
-    serde_json::from_slice(body).map_err(|e| SignatureError::SerdeError(e.to_string()))
-}
-
-fn find_cache_control_value(headers: &[HttpHeader]) -> Option<String> {
-    let cache_control_header = headers
-        .iter()
-        .find(|&h| String::from("cache-control").eq(&h.name.to_lowercase()));
-
-    cache_control_header.map(|header| header.value.to_owned())
-    // match cache_control_header {
-    //     Some(header) => Some(header.value.to_owned()),
-    //     None => None,
-    // }
-}
-
-#[cfg(test)]
-fn find_cache_control_value_for_reqwest(headers: &HeaderMap) -> Option<String> {
-    headers
-        .get("cache-control")
-        .map(|v| v.to_str().unwrap_or_default().to_owned())
-
-    // let cache_control_header = headers
-    //     .iter()
-    //     .find(|&h| String::from("cache-control").eq(&h.0.to_lowercase()));
-
-    // cache_control_header.map(|header| header.value.to_owned())
-    // match cache_control_header {
-    //     Some(header) => Some(header.value.to_owned()),
-    //     None => None,
-    // }
-}
-
-fn get_max_age(cache_control_value: Option<String>) -> Result<Duration, SignatureError> {
-    match cache_control_value {
-        Some(v) => parse_max_age_value(&v),
-        None => Err(SignatureError::NoCacheControlHeader),
+        cache_control_header.map(|header| header.value.to_owned())
     }
 }
 
-fn parse_max_age_value(s: &str) -> Result<Duration, SignatureError> {
-    let tokens: Vec<&str> = s.split(',').collect();
-    for token in tokens {
-        let key_value: Vec<&str> = token.split('=').map(|s| s.trim()).collect();
-        let key = key_value.first().unwrap();
-        let val = key_value.get(1);
+pub struct KeysFetcherNewArgument {
+    pub fetch: Box<dyn Fetch>,
+    pub now: Box<dyn Now>,
+}
 
-        if String::from("max-age").eq(&key.to_lowercase()) {
-            match val {
-                Some(value) => {
-                    return Ok(Duration::from_secs(value.parse().map_err(
-                        |e: ParseIntError| SignatureError::NonNumericMaxAge(e.to_string()),
-                    )?))
-                }
-                None => return Err(SignatureError::MaxAgeValueEmpty),
-            }
+pub struct KeysFetcher {
+    fetch: Box<dyn Fetch>,
+    now: Box<dyn Now>,
+}
+
+impl KeysFetcher {
+    pub fn new(arg: KeysFetcherNewArgument) -> Self {
+        Self {
+            fetch: arg.fetch,
+            now: arg.now,
         }
     }
-    Err(SignatureError::NoMaxAgeSpecified)
 }
+
+#[async_trait]
+impl FetchKeys for KeysFetcher {
+    async fn fetch_keys_internal(&self) -> Result<HttpResponse, SignatureError> {
+        let arg = CanisterHttpRequestArgument {
+            url: KEYS_URL.to_owned(),
+            max_response_bytes: Some(3000),
+            method: HttpMethod::GET,
+            headers: vec![],
+            body: None,
+            transform: None,
+        };
+
+        let response = self.fetch.fetch(arg).await?;
+
+        Ok(response)
+    }
+
+    fn now(&self) -> SystemTime {
+        self.now.now()
+    }
+}
+
+// async fn fetch_keys_internal2() -> Result<(Vec<JwkKey>, Option<String>), SignatureError> {
+//     let arg = CanisterHttpRequestArgument {
+//         url: KEYS_URL.to_owned(),
+//         max_response_bytes: Some(3000),
+//         method: HttpMethod::GET,
+//         headers: vec![],
+//         body: None,
+//         transform: None,
+//     };
+
+//     let response = self.fetch.fetch(arg).await?;
+//     let keys = body_to_keys(&response.body)?;
+//     let cache_control_value = find_cache_control_value(&response.headers);
+
+//     Ok((keys, cache_control_value))
+// }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
+    use crate::http_request::MockFetch;
+    use crate::now::MockNow;
+    use candid::Nat;
+
+    mockall::mock! {
+        FetchKeysTestStuct {}
+
+        #[async_trait]
+        impl FetchKeys for FetchKeysTestStuct {
+            async fn fetch_keys_internal(&self) -> Result<HttpResponse, SignatureError>;
+
+            fn now(&self) -> SystemTime;
+        }
+    }
+
+    #[test]
+    fn test_keys_fetcher_new() {
+        let _ = KeysFetcher::new(KeysFetcherNewArgument {
+            fetch: Box::new(MockFetch::new()),
+            now: Box::new(MockNow::new()),
+        });
+    }
 
     #[tokio::test]
     async fn test_fetch_keys_internal() {
-        let ret = fetch_keys_internal().await;
+        let key = JwkKey {
+            e: "e".to_owned(),
+            alg: "alg".to_owned(),
+            kty: "kty".to_owned(),
+            kid: "kid".to_owned(),
+            n: "n".to_owned(),
+        };
+        let keys = vec![key];
+        let key_res = KeyResponse { keys };
+        let mut body: Vec<u8> = Vec::new();
+        serde_json::to_writer(&mut body, &key_res).unwrap();
+        let res = HttpResponse {
+            status: Nat::from(200_u8),
+            body,
+            headers: vec![],
+        };
+
+        let mut mock = MockFetchKeys::new();
+        mock.expect_fetch_keys_internal()
+            .return_once(move || Ok(res));
+
+        let ret = mock.fetch_keys_internal().await;
         assert!(ret.is_ok());
     }
 
     #[test]
-    fn test_parse_max_age_value() {
-        let value = "public, max-age=19204, must-revalidate, no-transform";
-        assert_eq!(
-            Duration::from_secs(19204),
-            parse_max_age_value(value).unwrap()
-        );
-    }
-
-    #[test]
-    fn test_parse_max_age_value_non_numeric_max_age_err() -> Result<(), String> {
-        let value = "public, max-age=19a204, must-revalidate, no-transform";
-        let err = parse_max_age_value(value).unwrap_err();
-        match err {
-            SignatureError::NonNumericMaxAge(_) => Ok(()),
-            _ => Err("NonNumericMaxAge did not occur".to_owned()),
-        }
-    }
-
-    #[test]
-    fn test_parse_max_age_value_non_numeric_max_age_empty_err() -> Result<(), String> {
-        let value = "public, max-age=, must-revalidate, no-transform";
-        let err = parse_max_age_value(value).unwrap_err();
-        match err {
-            SignatureError::NonNumericMaxAge(_) => Ok(()),
-            _ => Err("NonNumericMaxAge did not occur".to_owned()),
-        }
-    }
-
-    #[test]
-    fn test_parse_max_age_value_no_max_age_specified_err() -> Result<(), String> {
-        let value = "public, must-revalidate, no-transform";
-        let err = parse_max_age_value(value).unwrap_err();
-        match err {
-            SignatureError::NoMaxAgeSpecified => Ok(()),
-            _ => Err("NoMaxAgeSpecified did not occur".to_owned()),
-        }
+    fn test_now() {
+        let now = SystemTime::now();
+        let mut mock = MockFetchKeys::new();
+        mock.expect_now().return_const(now);
+        assert_eq!(now, mock.now());
     }
 
     #[test]
@@ -186,11 +183,30 @@ mod tests {
             kid: "kid".to_owned(),
             n: "n".to_owned(),
         };
-        let keys = vec![key];
+        let keys = vec![key.clone()];
+        let key_res = KeyResponse { keys: keys.clone() };
         let mut body: Vec<u8> = Vec::new();
-        serde_json::to_writer(&mut body, &keys).unwrap();
+        serde_json::to_writer(&mut body, &key_res).unwrap();
 
-        assert_eq!(keys, body_to_keys(&body).unwrap());
+        let mock = MockFetchKeysTestStuct::new();
+        assert_eq!(keys, mock.body_to_keys(&body).unwrap());
+    }
+
+    #[test]
+    fn test_serde_json() {
+        let key = JwkKey {
+            e: "e".to_owned(),
+            alg: "alg".to_owned(),
+            kty: "kty".to_owned(),
+            kid: "kid".to_owned(),
+            n: "n".to_owned(),
+        };
+        let keys = vec![key.clone()];
+        let key_res = KeyResponse { keys: keys.clone() };
+        let json = serde_json::to_string(&key_res).unwrap();
+        let body = json.into_bytes();
+        let key_res2: KeyResponse = serde_json::from_slice(&body).unwrap();
+        assert_eq!(keys, key_res2.keys);
     }
 
     #[test]
@@ -201,7 +217,8 @@ mod tests {
             value: value.to_owned(),
         }];
 
-        let cache_control_value = find_cache_control_value(&headers);
+        let mock = MockFetchKeysTestStuct::new();
+        let cache_control_value = mock.find_cache_control_value(&headers);
         assert_eq!(value.to_owned(), cache_control_value.unwrap());
     }
 
@@ -212,46 +229,45 @@ mod tests {
             value: "bbb".to_owned(),
         }];
 
-        let cache_control_value = find_cache_control_value(&headers);
+        let mock = MockFetchKeysTestStuct::new();
+        let cache_control_value = mock.find_cache_control_value(&headers);
         assert!(cache_control_value.is_none());
     }
 
-    #[test]
-    fn test_find_cache_control_value_for_reqwest() {
-        let value = "public, max-age=19204, must-revalidate, no-transform";
-        let mut headers = HeaderMap::new();
-        headers.insert("cache-control", value.parse().unwrap());
-
-        let cache_control_value = find_cache_control_value_for_reqwest(&headers);
-        assert_eq!(value.to_owned(), cache_control_value.unwrap());
-    }
-
-    #[test]
-    fn test_get_max_age() {
-        let value = "public, max-age=19204, must-revalidate, no-transform";
-        assert_eq!(
-            Duration::from_secs(19204),
-            get_max_age(Some(value.to_owned())).unwrap()
-        );
-    }
-
-    #[test]
-    fn test_get_max_age_no_cache_control_header_err() -> Result<(), String> {
-        let err = get_max_age(None).unwrap_err();
-        match err {
-            SignatureError::NoCacheControlHeader => Ok(()),
-            _ => Err("NoCacheControlHeader did not occur".to_owned()),
-        }
-    }
-
     #[tokio::test]
-    async fn test_reqwest() -> Result<(), Box<dyn std::error::Error>> {
-        let resp = reqwest::get("https://httpbin.org/ip").await?;
-        let headers = resp.headers().clone();
-        let map = resp.json::<HashMap<String, String>>().await?;
+    async fn test_fetch_keys() {
+        let key = JwkKey {
+            e: "e".to_owned(),
+            alg: "alg".to_owned(),
+            kty: "kty".to_owned(),
+            kid: "kid".to_owned(),
+            n: "n".to_owned(),
+        };
+        let keys = vec![key.clone()];
+        let key_res = KeyResponse { keys };
+        let mut body: Vec<u8> = Vec::new();
+        serde_json::to_writer(&mut body, &key_res).unwrap();
+        let value = "public, max-age=19204, must-revalidate, no-transform";
+        let headers = vec![HttpHeader {
+            name: "cache-control".to_owned(),
+            value: value.to_owned(),
+        }];
+        let res = HttpResponse {
+            status: Nat::from(200_u8),
+            body,
+            headers,
+        };
+        let now = SystemTime::now();
 
-        assert_eq!("application/json", headers.get("content-type").unwrap());
-        assert_eq!("175.111.121.27", map.get("origin").unwrap());
-        Ok(())
+        let mut mock = MockFetchKeysTestStuct::new();
+        mock.expect_fetch_keys_internal()
+            .return_once(move || Ok(res));
+        mock.expect_now().return_const(now);
+
+        // let ret = mock.fetch_keys().await;
+        // println!("{:?}", ret);
+        let keys = mock.fetch_keys().await.unwrap();
+        assert!(keys.is_valid());
+        assert_eq!(&key, keys.get_key("kid").unwrap());
     }
 }

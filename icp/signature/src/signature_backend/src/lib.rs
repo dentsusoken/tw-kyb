@@ -18,9 +18,14 @@ mod fetch_keys;
 mod http_request;
 mod jwk_keys;
 mod jwt;
+mod max_age;
 mod now;
+//mod validator;
 
+use fetch_keys::{FetchKeys, KeysFetcher, KeysFetcherNewArgument};
+use http_request::Fetcher;
 use jwk_keys::JwkKeys;
+use now::{ICNow, Now};
 
 thread_local! {
     static JWK_KEYS: RefCell<JwkKeys> = RefCell::new(JwkKeys::default());
@@ -62,7 +67,11 @@ async fn sign(message_hash: Vec<u8>) -> Result<Vec<u8>, String> {
 async fn refresh_keys() -> Result<(), SignatureError> {
     let is_valid = JWK_KEYS.with(|keys| keys.borrow().is_valid());
     if !is_valid {
-        let new_keys = fetch_keys::fetch_keys().await?;
+        let keys_fetcher = KeysFetcher::new(KeysFetcherNewArgument {
+            fetch: Box::new(Fetcher),
+            now: Box::new(ICNow),
+        });
+        let new_keys = keys_fetcher.fetch_keys().await?;
         JWK_KEYS.with(|keys| keys.replace(new_keys));
     }
     Ok(())
@@ -76,7 +85,8 @@ async fn fetch_keys() -> Result<String, SignatureError> {
 
 #[query]
 async fn now() -> SystemTime {
-    now::now()
+    let now = ICNow;
+    now.now()
 }
 
 // #[query]
