@@ -20,7 +20,6 @@ mod jwk_keys;
 //mod jwt;
 mod max_age;
 mod now;
-mod rsa;
 //mod validator;
 
 use fetch_keys::{FetchKeys, KeysFetcher, KeysFetcherNewArgument};
