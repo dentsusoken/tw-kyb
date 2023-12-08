@@ -11,6 +11,7 @@
   ],
   "rust-analyzer.linkedProjects": [
     "./signature/src/signature_backend/Cargo.toml",
+    "./signature/src/signature_backend/Cargo.toml",
     "./signature/src/signature_backend/Cargo.toml"
   ]
 }

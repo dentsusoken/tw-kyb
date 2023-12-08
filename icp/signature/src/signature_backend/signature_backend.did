@@ -1,19 +1,11 @@
-type RejectionCode = variant {
-  NoError;
-  CanisterError;
-  SysTransient;
-  DestinationInvalid;
-  Unknown;
-  SysFatal;
-  CanisterReject;
-};
 type Result = variant { Ok : text; Err : SignatureError };
 type Result_1 = variant { Ok : vec nat8; Err : text };
 type SignatureError = variant {
   NoMaxAgeSpecified;
   NonNumericMaxAge : text;
-  FetchError : record { RejectionCode; text };
+  FetchError : text;
   MaxAgeValueEmpty;
+  SerdeError : text;
   NoCacheControlHeader;
 };
 type SystemTime = record {

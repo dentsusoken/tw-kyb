@@ -55,18 +55,30 @@ pub trait FetchKeys {
     }
 }
 
-pub struct KeysFetcherNewArgument {
-    pub fetch: Box<dyn Fetch>,
-    pub now: Box<dyn Now>,
+pub struct KeysFetcher<F, N>
+where
+    F: Fetch,
+    N: Now,
+{
+    fetch: F,
+    now: N,
 }
 
-pub struct KeysFetcher {
-    fetch: Box<dyn Fetch>,
-    now: Box<dyn Now>,
+pub struct KeysFetcherNewArgument<F, N>
+where
+    F: Fetch,
+    N: Now,
+{
+    pub fetch: F,
+    pub now: N,
 }
 
-impl KeysFetcher {
-    pub fn new(arg: KeysFetcherNewArgument) -> Self {
+impl<F, N> KeysFetcher<F, N>
+where
+    F: Fetch,
+    N: Now,
+{
+    pub fn new(arg: KeysFetcherNewArgument<F, N>) -> Self {
         Self {
             fetch: arg.fetch,
             now: arg.now,
@@ -75,7 +87,11 @@ impl KeysFetcher {
 }
 
 #[async_trait]
-impl FetchKeys for KeysFetcher {
+impl<F, N> FetchKeys for KeysFetcher<F, N>
+where
+    F: Fetch,
+    N: Now,
+{
     async fn fetch_keys_internal(&self) -> Result<HttpResponse, SignatureError> {
         let arg = CanisterHttpRequestArgument {
             url: KEYS_URL.to_owned(),
@@ -134,8 +150,8 @@ mod tests {
     #[test]
     fn test_keys_fetcher_new() {
         let _ = KeysFetcher::new(KeysFetcherNewArgument {
-            fetch: Box::new(MockFetch::new()),
-            now: Box::new(MockNow::new()),
+            fetch: MockFetch::new(),
+            now: MockNow::new(),
         });
     }
 
