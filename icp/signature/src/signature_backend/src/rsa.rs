@@ -2,6 +2,16 @@ use base64::{engine::general_purpose, Engine as _};
 use num_bigint::BigUint;
 use std::cmp::Ordering;
 
+const INTEGER_TOO_LARGE: &str = "integer too large";
+
+const SIGNATURE_OUT_OF_RANGE: &str = "signature representative out of range";
+
+const EM_TOO_SHORT: &str = "intended encoded message length too short";
+
+const INVALID_SIGNATURE: &str = "invalid_signature";
+
+const MODULUS_TOO_SHORT: &str = "RSA modulus too short";
+
 pub struct RSAPublicKey {
     n: BigUint,
     e: BigUint,
@@ -31,7 +41,7 @@ fn i2osp(i: &BigUint, k: &usize) -> Result<Vec<u8>, String> {
     let i_os = i.to_bytes_be();
     let i_os_len = i_os.len();
     match i_os_len.cmp(k) {
-        Ordering::Greater => Err("integer too large".to_string()),
+        Ordering::Greater => Err(INTEGER_TOO_LARGE.to_string()),
         Ordering::Equal => Ok(i_os),
         Ordering::Less => {
             let mut os = vec![0_u8; *k];
@@ -46,7 +56,7 @@ fn i2osp(i: &BigUint, k: &usize) -> Result<Vec<u8>, String> {
 
 fn rsavp1(pub_key: &RSAPublicKey, s: &BigUint) -> Result<BigUint, String> {
     if *s >= pub_key.n {
-        return Err("signature representative out of range".to_string());
+        return Err(SIGNATURE_OUT_OF_RANGE.to_string());
     }
     Ok(s.modpow(&pub_key.e, &pub_key.n))
 }
@@ -60,7 +70,7 @@ fn emsa_pkcs1_v15_encode_hash(h: &[u8; 32], k: &usize) -> Result<Vec<u8>, String
     let hash_len = h.len();
     let t_len = prefix_len + hash_len;
     if *k < t_len + 11 {
-        return Err("intended encoded message length too short".to_string());
+        return Err(EM_TOO_SHORT.to_string());
     }
 
     // T = HASH_PREFIX || h
@@ -87,13 +97,13 @@ pub fn rsassa_pkcs1_v15_verify(
     s_bytes: &[u8],
 ) -> Result<(), String> {
     let s = os2ip(s_bytes);
-    let em = rsavp1(pub_key, &s).map_err(|_| "invalid_signature".to_string())?;
-    let em_bytes = i2osp(&em, &pub_key.k).map_err(|_| "invalid_signature".to_string())?;
+    let em = rsavp1(pub_key, &s).map_err(|_| INVALID_SIGNATURE.to_string())?;
+    let em_bytes = i2osp(&em, &pub_key.k).map_err(|_| INVALID_SIGNATURE.to_string())?;
 
-    let em2_bytes = emsa_pkcs1_v15_encode(m_bytes, &pub_key.k)
-        .map_err(|_| "RSA modulus too short".to_string())?;
+    let em2_bytes =
+        emsa_pkcs1_v15_encode(m_bytes, &pub_key.k).map_err(|_| MODULUS_TOO_SHORT.to_string())?;
     if em_bytes != em2_bytes {
-        return Err("invalid_signature".to_string());
+        return Err(INVALID_SIGNATURE.to_string());
     }
     Ok(())
 }
@@ -101,6 +111,13 @@ pub fn rsassa_pkcs1_v15_verify(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rsa::{
+        pkcs1v15::SigningKey,
+        sha2::Sha256,
+        signature::{Keypair, Signer, Verifier},
+        traits::PublicKeyParts,
+        RsaPrivateKey,
+    };
     use std::fmt::Write;
 
     static B64_N: &str = "wnfD2k6iOI8IdDTKPY4J6HFOT1nKor6v2xEZ9G2n1_KtPs5-5aC8W_SvRTzXF9Ym-BeoQI5mfHSbaYafbeEDaCSVpxXja1K8n7EAlpYVGydTHgL2NLHADb-Gtkkiv8Gw9sSyea_foPW_i2YknOIyBM4A2Sxqf9VPQTSTj5zJGFtRnyQYuuTprxqj9qgZfAAhrGCizsW8bm62nH2DYORQ10rwaiY9kL4gVOPrU39vaB80YX5a2N-TRzDCzHaKlo9vSBMzysFs1WFmb9VdOLuIae1I7h50KFUIDncxv7tGrVxnYBi_etNl989JmDtDzLnPK3u4AMFEGcha52Y2QwxQeQ==";
@@ -236,5 +253,34 @@ mod tests {
         let pub_key = RSAPublicKey::new(&n_bytes, &e_bytes);
         let result = rsassa_pkcs1_v15_verify(&pub_key, B64_M.as_bytes(), &s_bytes);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_rsa_pkcs1v15_signatures() {
+        let mut rng = rand::thread_rng();
+        let bits = 2048;
+        let private_key = RsaPrivateKey::new(&mut rng, bits).unwrap();
+        let public_key = private_key.to_public_key();
+        //println!("{:?}", public_key.size());
+        //println!("{:?}", private_key);
+        //println!("{:?}", private_key.d());
+        let signing_key = SigningKey::<Sha256>::new(private_key);
+        //println!("{:?}", signing_key);
+        let verifing_key = signing_key.verifying_key();
+        //println!("{:?}", verifing_key);
+        let data = b"hello world";
+        let signature = signing_key.sign(data);
+        let sig_bytes: Box<[u8]> = signature.clone().into();
+        //println!("{:?}", &signature);
+        //println!("{:?}", to_hex(&sig_bytes));
+        let v = verifing_key.verify(data, &signature);
+        assert!(v.is_ok());
+        let public_key2 = RSAPublicKey {
+            n: os2ip(&public_key.n().to_bytes_be()),
+            e: os2ip(&public_key.e().to_bytes_be()),
+            k: public_key.size(),
+        };
+        let v2 = rsassa_pkcs1_v15_verify(&public_key2, data, &sig_bytes);
+        assert!(v2.is_ok());
     }
 }

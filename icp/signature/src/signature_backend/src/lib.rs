@@ -18,6 +18,7 @@ mod fetch_keys;
 mod http_request;
 mod jwk_keys;
 //mod jwt;
+mod id_token;
 mod max_age;
 mod now;
 mod rsa;
