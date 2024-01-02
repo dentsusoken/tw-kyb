@@ -6,7 +6,7 @@ type SignatureError = variant {
   IatFuture : nat64;
   IdTokenExpired : nat64;
   NonNumericMaxAge : text;
-  KidNotFound : text;
+  KidNotFound;
   AuthTimeFuture : nat64;
   InvalidAlg : ExpectedActual;
   InvalidAud : ExpectedActual;
@@ -20,8 +20,6 @@ type SignatureError = variant {
   Base64Error : text;
 };
 service : {
-  dfx_network : () -> (text) query;
-  ecdsa_key_name : () -> (text) query;
   public_key : (text) -> (Result);
   sign : (vec nat8, text) -> (Result);
 }

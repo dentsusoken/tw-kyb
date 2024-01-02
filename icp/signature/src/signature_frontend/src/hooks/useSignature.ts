@@ -4,6 +4,17 @@ import { ecdsaVerify } from 'secp256k1';
 import { signatureBackend } from '@/canisters';
 
 import { isOk } from '@/utils/variantUtils';
+import { auth } from '@/firebaseConfig';
+
+const parseIdToken = (idToken: string) => {
+  console.log('IdToken:', idToken);
+  const [headerBase64, bodyBase64, signature] = idToken.split('.');
+  const header = JSON.parse(Buffer.from(headerBase64, 'base64').toString());
+  const body = JSON.parse(Buffer.from(bodyBase64, 'base64').toString());
+
+  console.log('Header:', header);
+  console.log('Body:', body);
+};
 
 export const useSignature = () => {
   const [publicKey, setPublickey] = useState<Uint8Array | undefined>();
@@ -20,12 +31,16 @@ export const useSignature = () => {
       setError('');
       setPublickeyQuering(true);
       try {
-        const res = await signatureBackend.public_key();
-        if (isOk(res)) {
-          console.log('publicKey:', res.Ok);
-          setPublickey(res.Ok as Uint8Array);
-        } else {
-          setError(res.Err);
+        if (auth.currentUser) {
+          const idToken = await auth.currentUser.getIdToken(true);
+          parseIdToken(idToken);
+          const res = await signatureBackend.public_key(idToken);
+          if (isOk(res)) {
+            console.log('publicKey:', res.Ok);
+            setPublickey(res.Ok as Uint8Array);
+          } else {
+            setError(res.Err.toString());
+          }
         }
       } catch (e: any) {
         setError(e.message);
@@ -53,13 +68,24 @@ export const useSignature = () => {
       setSigning(true);
       setSignature(undefined);
       try {
-        const res = await signatureBackend.sign(hash);
-        if (isOk(res)) {
-          console.log('signature:', res.Ok);
-          setSignature(res.Ok as Uint8Array);
-        } else {
-          setError(res.Err);
+        if (auth.currentUser) {
+          const idToken = await auth.currentUser.getIdToken(true);
+          parseIdToken(idToken);
+          const res = await signatureBackend.sign(hash, idToken);
+          if (isOk(res)) {
+            console.log('signature:', res.Ok);
+            setSignature(res.Ok as Uint8Array);
+          } else {
+            setError(res.Err.toString());
+          }
         }
+        // const res = await signatureBackend.sign(hash);
+        // if (isOk(res)) {
+        //   console.log('signature:', res.Ok);
+        //   setSignature(res.Ok as Uint8Array);
+        // } else {
+        //   setError(res.Err);
+        // }
       } catch (e: any) {
         setError(e.message);
       } finally {

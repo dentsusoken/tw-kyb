@@ -17,7 +17,6 @@ where
 #[derive(Debug, CandidType, PartialEq, Eq)]
 //#[allow(dead_code)]
 pub enum SignatureError {
-    FetchError(String),
     NonNumericMaxAge(String),
     MaxAgeValueEmpty,
     NoMaxAgeSpecified,
@@ -26,7 +25,7 @@ pub enum SignatureError {
     IdTokenNotThreeParts,
     Base64Error(String),
     InvalidAlg(ExpectedActual<String>),
-    KidNotFound,
+    KidNotFound(String),
     InvalidIss(ExpectedActual<String>),
     InvalidAud(ExpectedActual<String>),
     SubEmpty,
@@ -34,12 +33,12 @@ pub enum SignatureError {
     AuthTimeFuture(u64),
     IdTokenExpired(u64),
     VerifyError(String),
+    ICError(String),
 }
 
 impl fmt::Display for SignatureError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Self::FetchError(ref err) => write!(f, "FetchError: {}", err),
             Self::NonNumericMaxAge(ref err) => write!(f, "NonNumericMaxAge: {}", err),
             Self::MaxAgeValueEmpty => write!(f, "MaxAgeValueEmpty"),
             Self::NoMaxAgeSpecified => write!(f, "NoMaxAgeSpecified"),
@@ -48,7 +47,7 @@ impl fmt::Display for SignatureError {
             Self::IdTokenNotThreeParts => write!(f, "IdTokenNotThreeParts"),
             Self::Base64Error(ref err) => write!(f, "Base64Error: {}", err),
             Self::InvalidAlg(ref content) => write!(f, "InvalidAlg: {:?}", content),
-            Self::KidNotFound => write!(f, "KidNotFound"),
+            Self::KidNotFound(ref kid) => write!(f, "KidNotFound: {}", kid),
             Self::InvalidIss(ref content) => write!(f, "InvalidIss: {:?}", content),
             Self::InvalidAud(ref content) => write!(f, "InvalidAud: {:?}", content),
             Self::SubEmpty => write!(f, "SubEmpty"),
@@ -56,6 +55,7 @@ impl fmt::Display for SignatureError {
             Self::AuthTimeFuture(ref auth_time) => write!(f, "AuthTimeFuture: {}", auth_time),
             Self::IdTokenExpired(ref exp) => write!(f, "IdTokenExpired: {}", exp),
             Self::VerifyError(ref content) => write!(f, "VerifyError: {}", content),
+            Self::ICError(ref content) => write!(f, "ICError: {}", content),
         }
     }
 }

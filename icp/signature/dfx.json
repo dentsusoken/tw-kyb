@@ -13,6 +13,7 @@
       "frontend": {
         "entrypoint": "src/signature_frontend/out/index.html"
       },
+      "build": "yarn --cwd src/signature_frontend build",
       "source": [
         "src/signature_frontend/out"
       ],
