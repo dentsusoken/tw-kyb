@@ -17,10 +17,10 @@ where
 #[derive(Debug, CandidType, PartialEq, Eq)]
 //#[allow(dead_code)]
 pub enum SignatureError {
-    NonNumericMaxAge(String),
-    MaxAgeValueEmpty,
-    NoMaxAgeSpecified,
-    NoCacheControlHeader,
+    //NonNumericMaxAge(String),
+    //MaxAgeValueEmpty,
+    //NoMaxAgeSpecified,
+    //NoCacheControlHeader,
     SerdeError(String),
     IdTokenNotThreeParts,
     Base64Error(String),
@@ -39,10 +39,10 @@ pub enum SignatureError {
 impl fmt::Display for SignatureError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Self::NonNumericMaxAge(ref err) => write!(f, "NonNumericMaxAge: {}", err),
-            Self::MaxAgeValueEmpty => write!(f, "MaxAgeValueEmpty"),
-            Self::NoMaxAgeSpecified => write!(f, "NoMaxAgeSpecified"),
-            Self::NoCacheControlHeader => write!(f, "NoCacheControlHeader"),
+            //Self::NonNumericMaxAge(ref err) => write!(f, "NonNumericMaxAge: {}", err),
+            //Self::MaxAgeValueEmpty => write!(f, "MaxAgeValueEmpty"),
+            //Self::NoMaxAgeSpecified => write!(f, "NoMaxAgeSpecified"),
+            //Self::NoCacheControlHeader => write!(f, "NoCacheControlHeader"),
             Self::SerdeError(ref err) => write!(f, "SerdeError: {}", err),
             Self::IdTokenNotThreeParts => write!(f, "IdTokenNotThreeParts"),
             Self::Base64Error(ref err) => write!(f, "Base64Error: {}", err),

@@ -15,6 +15,7 @@ export function createActor<T>(
     host: isLocal ? 'http://127.0.0.1:4943' : `https://${canisterId}.ic0.app`,
   };
   const agent = new HttpAgent(hostOptions);
+  //const agent = new HttpAgent({});
 
   if (isLocal) {
     agent.fetchRootKey().catch((err) => {

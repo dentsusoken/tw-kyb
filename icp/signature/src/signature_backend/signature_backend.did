@@ -1,11 +1,16 @@
 type ExpectedActual = record { actual : text; expected : text };
-type Result = variant { Ok : vec nat8; Err : SignatureError };
+type HttpHeader = record { value : text; name : text };
+type HttpResponse = record {
+  status : nat;
+  body : vec nat8;
+  headers : vec HttpHeader;
+};
+type Result = variant { Ok : HttpResponse; Err : SignatureError };
+type Result_1 = variant { Ok : vec nat8; Err : SignatureError };
 type SignatureError = variant {
-  NoMaxAgeSpecified;
   IdTokenNotThreeParts;
   IatFuture : nat64;
   IdTokenExpired : nat64;
-  NonNumericMaxAge : text;
   KidNotFound : text;
   AuthTimeFuture : nat64;
   InvalidAlg : ExpectedActual;
@@ -13,15 +18,17 @@ type SignatureError = variant {
   InvalidIss : ExpectedActual;
   VerifyError : text;
   ICError : text;
-  MaxAgeValueEmpty;
   SerdeError : text;
   SubEmpty;
-  NoCacheControlHeader;
   Base64Error : text;
 };
+type TransformArgs = record { context : vec nat8; response : HttpResponse };
 service : {
   dfx_network : () -> (text) query;
   ecdsa_key_name : () -> (text) query;
-  public_key : (text) -> (Result);
-  sign : (vec nat8, text) -> (Result);
+  fetch_keys : () -> (Result);
+  public_key : (text) -> (Result_1);
+  sign : (vec nat8, text) -> (Result_1);
+  transform : (TransformArgs) -> (HttpResponse) query;
+  transformx : (TransformArgs) -> (HttpResponse) query;
 }

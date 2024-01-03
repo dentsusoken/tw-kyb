@@ -5,7 +5,7 @@ import {
   GoogleAuthProvider,
   User,
   onAuthStateChanged,
-  signInWithRedirect,
+  signInWithPopup,
 } from 'firebase/auth';
 import { auth } from '@/firebaseConfig';
 
@@ -21,7 +21,7 @@ export const useFirebaseAuth = () => {
   const login = async () => {
     try {
       setAuthErr('');
-      await signInWithRedirect(auth, googleProvider);
+      await signInWithPopup(auth, googleProvider);
     } catch (err: any) {
       setAuthErr(err.message);
     }

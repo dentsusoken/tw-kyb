@@ -1,6 +1,5 @@
 use crate::error::SignatureError;
 use async_trait::async_trait;
-use candid::Nat;
 use ic_cdk::api::management_canister::http_request::{
     http_request, CanisterHttpRequestArgument, HttpResponse,
 };
@@ -28,7 +27,7 @@ impl Fetch for Fetcher {
             .map_err(|e| SignatureError::ICError(format!("{:?} {}", e.0, e.1)))
             .unwrap()
             .0;
-        assert_eq!(response.status, Nat::from(200_u8));
+        assert_eq!(response.status, 200_u8);
 
         Ok(response)
     }

@@ -1,8 +1,11 @@
 use crate::error::SignatureError;
 use ic_cdk::{
-    api::management_canister::ecdsa::{
-        ecdsa_public_key, sign_with_ecdsa, EcdsaCurve, EcdsaKeyId, EcdsaPublicKeyArgument,
-        SignWithEcdsaArgument,
+    api::management_canister::{
+        ecdsa::{
+            ecdsa_public_key, sign_with_ecdsa, EcdsaCurve, EcdsaKeyId, EcdsaPublicKeyArgument,
+            SignWithEcdsaArgument,
+        },
+        http_request::{HttpResponse, TransformArgs, TransformContext},
     },
     export_candid, query, update,
 };
@@ -15,10 +18,12 @@ mod http_request;
 mod id_token;
 mod jwk_keys;
 mod jwk_keys_store;
-mod max_age;
+//mod max_age;
 mod now;
 mod rsa;
 
+use fetch_keys::normalize_body;
+use http_request::{Fetch, Fetcher};
 use now::{ICNow, Now};
 
 const PROJECT_ID: &str = "tw-signature";
@@ -68,6 +73,41 @@ fn ecdsa_key_name() -> &'static str {
         "playground" => "test_key_1",
         _ => "dfx_test_key",
     }
+}
+
+#[query(name = "transformx")]
+pub fn transformx(args: TransformArgs) -> HttpResponse {
+    HttpResponse {
+        status: args.response.status.clone(),
+        body: normalize_body(&args.response.body).unwrap_or(args.response.body),
+        // Strip headers as they contain the Date which is not necessarily the same
+        // and will prevent consensus on the result.
+        headers: Vec::new(),
+    }
+}
+
+#[update]
+async fn fetch_keys() -> Result<HttpResponse, SignatureError> {
+    const KEYS_URL: &str =
+        "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com";
+
+    let fetch = Fetcher;
+
+    let arg = ic_cdk::api::management_canister::http_request::CanisterHttpRequestArgument {
+        url: KEYS_URL.to_string(),
+        max_response_bytes: Some(3000),
+        method: ic_cdk::api::management_canister::http_request::HttpMethod::GET,
+        headers: vec![],
+        body: None,
+        transform: Some(TransformContext::from_name(
+            "transformx".to_string(),
+            vec![],
+        )),
+    };
+
+    let response = fetch.fetch(arg).await?;
+
+    Ok(response)
 }
 
 fn ecdsa_key_id() -> EcdsaKeyId {
