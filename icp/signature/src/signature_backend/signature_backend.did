@@ -1,20 +1,34 @@
-type Result = variant { Ok : text; Err : SignatureError };
-type Result_1 = variant { Ok : vec nat8; Err : text };
+type ExpectedActual = record { actual : text; expected : text };
+type HttpHeader = record { value : text; name : text };
+type HttpResponse = record {
+  status : nat;
+  body : vec nat8;
+  headers : vec HttpHeader;
+};
+type Result = variant { Ok : HttpResponse; Err : SignatureError };
+type Result_1 = variant { Ok : vec nat8; Err : SignatureError };
 type SignatureError = variant {
-  NoMaxAgeSpecified;
-  NonNumericMaxAge : text;
-  FetchError : text;
-  MaxAgeValueEmpty;
+  IdTokenNotThreeParts;
+  IatFuture : nat64;
+  IdTokenExpired : nat64;
+  KidNotFound : text;
+  AuthTimeFuture : nat64;
+  InvalidAlg : ExpectedActual;
+  InvalidAud : ExpectedActual;
+  InvalidIss : ExpectedActual;
+  VerifyError : text;
+  ICError : text;
   SerdeError : text;
-  NoCacheControlHeader;
+  SubEmpty;
+  Base64Error : text;
 };
-type SystemTime = record {
-  nanos_since_epoch : nat32;
-  secs_since_epoch : nat64;
-};
+type TransformArgs = record { context : vec nat8; response : HttpResponse };
 service : {
+  dfx_network : () -> (text) query;
+  ecdsa_key_name : () -> (text) query;
   fetch_keys : () -> (Result);
-  now : () -> (SystemTime) query;
-  public_key : () -> (Result_1);
-  sign : (vec nat8) -> (Result_1);
+  public_key : (text) -> (Result_1);
+  sign : (vec nat8, text) -> (Result_1);
+  transform : (TransformArgs) -> (HttpResponse) query;
+  transformx : (TransformArgs) -> (HttpResponse) query;
 }

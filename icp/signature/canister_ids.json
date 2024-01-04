@@ -1,5 +1,8 @@
 {
   "signature_backend": {
-    "ic": "f74jr-maaaa-aaaag-ab3rq-cai"
+    "ic": "bf3rp-yyaaa-aaaag-achoq-cai"
+  },
+  "signature_frontend": {
+    "ic": "bmy2t-oqaaa-aaaag-achpa-cai"
   }
 }

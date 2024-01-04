@@ -21,6 +21,7 @@ function exportEnv(prefix) {
   const network =
     process.env.DFX_NETWORK ||
     (process.env.NODE_ENV === "production" ? "ic" : "local");
+  process.env[`${prefix}DFX_NETWORK`] = network;
 
   console.info(`canisterIds: network=${network}`);
   console.info(`canisterIds: DFX_NETWORK=${process.env.DFX_NETWORK}`);

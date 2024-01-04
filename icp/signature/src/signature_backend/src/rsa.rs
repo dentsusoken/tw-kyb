@@ -1,7 +1,21 @@
-use base64::{engine::general_purpose, Engine as _};
+use crate::error::SignatureError;
+use crate::jwk_keys::JwkKey;
+//use base64::{engine::general_purpose, Engine as _};
 use num_bigint::BigUint;
 use std::cmp::Ordering;
+use std::convert::TryFrom;
 
+const INTEGER_TOO_LARGE: &str = "integer too large";
+
+const SIGNATURE_OUT_OF_RANGE: &str = "signature representative out of range";
+
+const EM_TOO_SHORT: &str = "intended encoded message length too short";
+
+const INVALID_SIGNATURE: &str = "invalid_signature";
+
+const MODULUS_TOO_SHORT: &str = "RSA modulus too short";
+
+#[derive(Debug, PartialEq, Eq)]
 pub struct RSAPublicKey {
     n: BigUint,
     e: BigUint,
@@ -18,6 +32,15 @@ impl RSAPublicKey {
     }
 }
 
+impl TryFrom<&JwkKey> for RSAPublicKey {
+    type Error = SignatureError;
+
+    fn try_from(value: &JwkKey) -> Result<Self, Self::Error> {
+        value.verify()?;
+        Ok(Self::new(&value.n_bytes()?, &value.e_bytes()?))
+    }
+}
+
 const HASH_PREFIX: &[u8; 19] = &[
     0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05,
     0x00, 0x04, 0x20,
@@ -31,14 +54,11 @@ fn i2osp(i: &BigUint, k: &usize) -> Result<Vec<u8>, String> {
     let i_os = i.to_bytes_be();
     let i_os_len = i_os.len();
     match i_os_len.cmp(k) {
-        Ordering::Greater => Err("integer too large".to_string()),
+        Ordering::Greater => Err(INTEGER_TOO_LARGE.to_string()),
         Ordering::Equal => Ok(i_os),
         Ordering::Less => {
             let mut os = vec![0_u8; *k];
             os[k - i_os_len..].copy_from_slice(&i_os);
-            // let mut os = i_os;
-            // os.resize(*k, 0_u8);
-            // os.rotate_right(*k - i_os_len);
             Ok(os)
         }
     }
@@ -46,7 +66,7 @@ fn i2osp(i: &BigUint, k: &usize) -> Result<Vec<u8>, String> {
 
 fn rsavp1(pub_key: &RSAPublicKey, s: &BigUint) -> Result<BigUint, String> {
     if *s >= pub_key.n {
-        return Err("signature representative out of range".to_string());
+        return Err(SIGNATURE_OUT_OF_RANGE.to_string());
     }
     Ok(s.modpow(&pub_key.e, &pub_key.n))
 }
@@ -60,7 +80,7 @@ fn emsa_pkcs1_v15_encode_hash(h: &[u8; 32], k: &usize) -> Result<Vec<u8>, String
     let hash_len = h.len();
     let t_len = prefix_len + hash_len;
     if *k < t_len + 11 {
-        return Err("intended encoded message length too short".to_string());
+        return Err(EM_TOO_SHORT.to_string());
     }
 
     // T = HASH_PREFIX || h
@@ -87,29 +107,39 @@ pub fn rsassa_pkcs1_v15_verify(
     s_bytes: &[u8],
 ) -> Result<(), String> {
     let s = os2ip(s_bytes);
-    let em = rsavp1(pub_key, &s).map_err(|_| "invalid_signature".to_string())?;
-    let em_bytes = i2osp(&em, &pub_key.k).map_err(|_| "invalid_signature".to_string())?;
+    let em = rsavp1(pub_key, &s).map_err(|_| INVALID_SIGNATURE.to_string())?;
+    let em_bytes = i2osp(&em, &pub_key.k).map_err(|_| INVALID_SIGNATURE.to_string())?;
 
-    let em2_bytes = emsa_pkcs1_v15_encode(m_bytes, &pub_key.k)
-        .map_err(|_| "RSA modulus too short".to_string())?;
+    let em2_bytes =
+        emsa_pkcs1_v15_encode(m_bytes, &pub_key.k).map_err(|_| MODULUS_TOO_SHORT.to_string())?;
     if em_bytes != em2_bytes {
-        return Err("invalid_signature".to_string());
+        return Err(INVALID_SIGNATURE.to_string());
     }
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::error::ExpectedActual;
+
     use super::*;
+    use crate::b64::{b64_decode, b64_encode};
+    use rsa::{
+        pkcs1v15::SigningKey,
+        sha2::Sha256,
+        signature::{Keypair, Signer, Verifier},
+        traits::PublicKeyParts,
+        RsaPrivateKey,
+    };
     use std::fmt::Write;
 
-    static B64_N: &str = "wnfD2k6iOI8IdDTKPY4J6HFOT1nKor6v2xEZ9G2n1_KtPs5-5aC8W_SvRTzXF9Ym-BeoQI5mfHSbaYafbeEDaCSVpxXja1K8n7EAlpYVGydTHgL2NLHADb-Gtkkiv8Gw9sSyea_foPW_i2YknOIyBM4A2Sxqf9VPQTSTj5zJGFtRnyQYuuTprxqj9qgZfAAhrGCizsW8bm62nH2DYORQ10rwaiY9kL4gVOPrU39vaB80YX5a2N-TRzDCzHaKlo9vSBMzysFs1WFmb9VdOLuIae1I7h50KFUIDncxv7tGrVxnYBi_etNl989JmDtDzLnPK3u4AMFEGcha52Y2QwxQeQ==";
+    static N_B64: &str = "wnfD2k6iOI8IdDTKPY4J6HFOT1nKor6v2xEZ9G2n1_KtPs5-5aC8W_SvRTzXF9Ym-BeoQI5mfHSbaYafbeEDaCSVpxXja1K8n7EAlpYVGydTHgL2NLHADb-Gtkkiv8Gw9sSyea_foPW_i2YknOIyBM4A2Sxqf9VPQTSTj5zJGFtRnyQYuuTprxqj9qgZfAAhrGCizsW8bm62nH2DYORQ10rwaiY9kL4gVOPrU39vaB80YX5a2N-TRzDCzHaKlo9vSBMzysFs1WFmb9VdOLuIae1I7h50KFUIDncxv7tGrVxnYBi_etNl989JmDtDzLnPK3u4AMFEGcha52Y2QwxQeQ==";
 
-    static B64_E: &str = "AQAB";
+    static E_B64: &str = "AQAB";
 
-    static B64_M: &str = "eyJhbGciOiJSUzI1NiIsImtpZCI6ImRhMGI1ZDQyNDRjY2ZiNzViMjcwODQxNjI5NWYwNWQ1MThjYTY5MDMifQ.eyJpc3MiOiJhY2NvdW50cy5nb29nbGUuY29tIiwiYXRfaGFzaCI6Ijd2ajAzMklIQWdzMEdNUGxOUDFkV2ciLCJhdWQiOiI5MTQ2OTk1NzE0NS1qYjg0MnUwcmNnbTg3bTIyMDlhZWxiZnRzbDlwMzU3aS5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbSIsInN1YiI6IjExNzQ0MjQ1MDQ0MzI0NDAzNTk1NSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJhenAiOiI5MTQ2OTk1NzE0NS1qYjg0MnUwcmNnbTg3bTIyMDlhZWxiZnRzbDlwMzU3aS5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbSIsImVtYWlsIjoiYm9idW5kZXJzb25AZ21haWwuY29tIiwiaWF0IjoxNDQzNzY4NzcxLCJleHAiOjE0NDM3NzIzNzF9";
+    static M_B64: &str = "eyJhbGciOiJSUzI1NiIsImtpZCI6ImRhMGI1ZDQyNDRjY2ZiNzViMjcwODQxNjI5NWYwNWQ1MThjYTY5MDMifQ.eyJpc3MiOiJhY2NvdW50cy5nb29nbGUuY29tIiwiYXRfaGFzaCI6Ijd2ajAzMklIQWdzMEdNUGxOUDFkV2ciLCJhdWQiOiI5MTQ2OTk1NzE0NS1qYjg0MnUwcmNnbTg3bTIyMDlhZWxiZnRzbDlwMzU3aS5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbSIsInN1YiI6IjExNzQ0MjQ1MDQ0MzI0NDAzNTk1NSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJhenAiOiI5MTQ2OTk1NzE0NS1qYjg0MnUwcmNnbTg3bTIyMDlhZWxiZnRzbDlwMzU3aS5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbSIsImVtYWlsIjoiYm9idW5kZXJzb25AZ21haWwuY29tIiwiaWF0IjoxNDQzNzY4NzcxLCJleHAiOjE0NDM3NzIzNzF9";
 
-    static B64_S: &str="bzNpok6tybsHOicXvbP9Q97kKO14ei3B1DXlNa8LFiZj8rQJfnm_rATRlMFEGs1fsW5Av7srDy-2JjdEbQufHbYlUBXIJh7_sBwI_qU6NIYn2t8hcGpMnXoe2z0BtkP3CyvvTINRVxA6WwHv_Teh0nzxnaxmcOVm0ajLKT603Crtt4MNur_azADTxNxYafaQ5o7XOo9V0PMM0nVy6kqn-N3IjxBPNXqQapmxub6qzJcRsOyAjOyzK1hRAuxvX9vd9fAoBf4ycpbeTWIy7nQIeEU8kl2lTNSb9DBZrsVP7GzhFRdEMDIxctcBoqXDxBuYLuSXGlnMyfSYy0sU39VBtw==";
+    static S_B64: &str="bzNpok6tybsHOicXvbP9Q97kKO14ei3B1DXlNa8LFiZj8rQJfnm_rATRlMFEGs1fsW5Av7srDy-2JjdEbQufHbYlUBXIJh7_sBwI_qU6NIYn2t8hcGpMnXoe2z0BtkP3CyvvTINRVxA6WwHv_Teh0nzxnaxmcOVm0ajLKT603Crtt4MNur_azADTxNxYafaQ5o7XOo9V0PMM0nVy6kqn-N3IjxBPNXqQapmxub6qzJcRsOyAjOyzK1hRAuxvX9vd9fAoBf4ycpbeTWIy7nQIeEU8kl2lTNSb9DBZrsVP7GzhFRdEMDIxctcBoqXDxBuYLuSXGlnMyfSYy0sU39VBtw==";
 
     fn to_hex(bytes: &[u8]) -> String {
         bytes.iter().fold(String::new(), |mut output, b| {
@@ -119,10 +149,51 @@ mod tests {
     }
 
     #[test]
+    fn test_rsa_public_key_try_from() {
+        let n = BigUint::from(123_456_u32);
+        let e = BigUint::from(65_537_u32);
+        let n_bytes = n.to_bytes_be();
+        let n_b64 = b64_encode(n_bytes);
+        let key1 = JwkKey {
+            kid: "1".to_string(),
+            e: "AQAB".to_string(),
+            alg: "RS256".to_string(),
+            kty: "RSA".to_string(),
+            n: n_b64.clone(),
+        };
+        let pub_key = RSAPublicKey::try_from(&key1).unwrap();
+        assert_eq!(n, pub_key.n);
+        assert_eq!(e, pub_key.e);
+    }
+
+    #[test]
+    fn test_rsa_public_key_try_from_verify_error() {
+        let n = BigUint::from(123_456_u32);
+        let n_bytes = n.to_bytes_be();
+        let n_b64 = b64_encode(n_bytes);
+        let key1 = JwkKey {
+            kid: "1".to_string(),
+            e: "AQAB".to_string(),
+            alg: "RS256xxx".to_string(),
+            kty: "RSA".to_string(),
+            n: n_b64.clone(),
+        };
+        let ret = RSAPublicKey::try_from(&key1);
+        assert!(ret.is_err());
+        assert_eq!(
+            SignatureError::InvalidAlg(ExpectedActual {
+                expected: "RS256".to_string(),
+                actual: "RS256xxx".to_string(),
+            }),
+            ret.err().unwrap()
+        );
+    }
+
+    #[test]
     fn test_b64_decode() {
-        let n = general_purpose::URL_SAFE.decode(B64_N).unwrap();
-        let s = general_purpose::URL_SAFE.decode(B64_S).unwrap();
-        let e = general_purpose::URL_SAFE.decode(B64_E).unwrap();
+        let n = b64_decode(N_B64).unwrap();
+        let s = b64_decode(S_B64).unwrap();
+        let e = b64_decode(E_B64).unwrap();
         assert_eq!(256, n.len());
         assert_eq!(256, s.len());
         assert_eq!(vec![0x01, 0x00, 0x01], e);
@@ -130,9 +201,9 @@ mod tests {
 
     #[test]
     fn test_os2ip_i2osp() {
-        let s_bytes = general_purpose::URL_SAFE.decode(B64_S).unwrap();
-        let e_bytes = general_purpose::URL_SAFE.decode(B64_E).unwrap();
-        let n_bytes = general_purpose::URL_SAFE.decode(B64_N).unwrap();
+        let s_bytes = b64_decode(S_B64).unwrap();
+        let e_bytes = b64_decode(E_B64).unwrap();
+        let n_bytes = b64_decode(N_B64).unwrap();
         let k = n_bytes.len();
         let s = os2ip(&s_bytes);
         let e = os2ip(&e_bytes);
@@ -165,9 +236,9 @@ mod tests {
 
     #[test]
     fn test_rsavp1() {
-        let s_bytes = general_purpose::URL_SAFE.decode(B64_S).unwrap();
-        let e_bytes = general_purpose::URL_SAFE.decode(B64_E).unwrap();
-        let n_bytes = general_purpose::URL_SAFE.decode(B64_N).unwrap();
+        let s_bytes = b64_decode(S_B64).unwrap();
+        let e_bytes = b64_decode(E_B64).unwrap();
+        let n_bytes = b64_decode(N_B64).unwrap();
         let k = n_bytes.len();
         let s = os2ip(&s_bytes);
         let em = rsavp1(&RSAPublicKey::new(&n_bytes, &e_bytes), &s).unwrap();
@@ -194,7 +265,7 @@ mod tests {
 
     #[test]
     fn test_hash() {
-        let h = hash(B64_M.as_bytes());
+        let h = hash(M_B64.as_bytes());
         let h_hex = to_hex(&h);
         let expected = "0c066e94c392758e604ed753d81048699aa61f93af9964df09f106504c07edb3";
         assert_eq!(expected, h_hex);
@@ -202,7 +273,7 @@ mod tests {
 
     #[test]
     fn test_emsa_pkcs1_v15_encode_hash() {
-        let h = hash(B64_M.as_bytes());
+        let h = hash(M_B64.as_bytes());
         let em = emsa_pkcs1_v15_encode_hash(&h, &256).unwrap();
         let em_hex = to_hex(&em);
         let expected = "0001ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff003031300d0609608648016503040201050004200c066e94c392758e604ed753d81048699aa61f93af9964df09f106504c07edb3";
@@ -211,7 +282,7 @@ mod tests {
 
     #[test]
     fn test_emsa_pkcs1_v15_encode_hash_err() {
-        let h = hash(B64_M.as_bytes());
+        let h = hash(M_B64.as_bytes());
         let result = emsa_pkcs1_v15_encode_hash(&h, &42);
         assert!(result.is_err());
         assert_eq!(
@@ -222,7 +293,7 @@ mod tests {
 
     #[test]
     fn test_emsa_pkcs1_v15_encode() {
-        let em = emsa_pkcs1_v15_encode(B64_M.as_bytes(), &256).unwrap();
+        let em = emsa_pkcs1_v15_encode(M_B64.as_bytes(), &256).unwrap();
         let em_hex = to_hex(&em);
         let expected = "0001ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff003031300d0609608648016503040201050004200c066e94c392758e604ed753d81048699aa61f93af9964df09f106504c07edb3";
         assert_eq!(expected, em_hex);
@@ -230,11 +301,33 @@ mod tests {
 
     #[test]
     fn test_rsassa_pkcs1_v15_verify() {
-        let s_bytes = general_purpose::URL_SAFE.decode(B64_S).unwrap();
-        let n_bytes = general_purpose::URL_SAFE.decode(B64_N).unwrap();
-        let e_bytes = general_purpose::URL_SAFE.decode(B64_E).unwrap();
+        let s_bytes = b64_decode(S_B64).unwrap();
+        let n_bytes = b64_decode(N_B64).unwrap();
+        let e_bytes = b64_decode(E_B64).unwrap();
         let pub_key = RSAPublicKey::new(&n_bytes, &e_bytes);
-        let result = rsassa_pkcs1_v15_verify(&pub_key, B64_M.as_bytes(), &s_bytes);
+        let result = rsassa_pkcs1_v15_verify(&pub_key, M_B64.as_bytes(), &s_bytes);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_rsa_pkcs1v15_signatures() {
+        let mut rng = rand::thread_rng();
+        let bits = 2048;
+        let private_key = RsaPrivateKey::new(&mut rng, bits).unwrap();
+        let public_key = private_key.to_public_key();
+        let signing_key = SigningKey::<Sha256>::new(private_key);
+        let verifing_key = signing_key.verifying_key();
+        let data = b"hello world";
+        let signature = signing_key.sign(data);
+        let sig_bytes: Box<[u8]> = signature.clone().into();
+        let v = verifing_key.verify(data, &signature);
+        assert!(v.is_ok());
+        let public_key2 = RSAPublicKey {
+            n: os2ip(&public_key.n().to_bytes_be()),
+            e: os2ip(&public_key.e().to_bytes_be()),
+            k: public_key.size(),
+        };
+        let v2 = rsassa_pkcs1_v15_verify(&public_key2, data, &sig_bytes);
+        assert!(v2.is_ok());
     }
 }

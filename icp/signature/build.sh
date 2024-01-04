@@ -16,3 +16,5 @@ candid-extractor $wasm_file 2>/dev/null > $did_file
 ic-wasm $wasm_file -o $wasm_file metadata candid:service -v public -f $did_file
 
 ic-wasm $wasm_file -o $opt_wasm_file shrink
+
+dfx generate $package
