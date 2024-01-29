@@ -1,141 +1,115 @@
-use crate::error::SignatureError;
-use ic_cdk::{
-    api::management_canister::{
-        ecdsa::{
-            ecdsa_public_key, sign_with_ecdsa, EcdsaCurve, EcdsaKeyId, EcdsaPublicKeyArgument,
-            SignWithEcdsaArgument,
-        },
-        http_request::{HttpResponse, TransformArgs, TransformContext},
-    },
-    export_candid, query, update,
-};
-use std::time::SystemTime;
+use api::{PublicKeyRequestBody, PublicKeyResponseBody, SignRequestBody, SignResponseBody};
+use error::SignatureError;
+use ic_cdk::{export_candid, query, update};
+use ic_types::{RawHttpRequest, RawHttpResponse};
 
+mod api;
 mod b64;
+mod constants;
 mod error;
-mod fetch_keys;
-mod http_request;
+mod fetch;
+mod http_utils;
+mod ic_api;
+mod ic_types;
 mod id_token;
+mod id_token_verifier;
 mod jwk_keys;
-mod jwk_keys_store;
-//mod max_age;
+mod keys_fetch;
 mod now;
 mod rsa;
-
-use fetch_keys::normalize_body;
-use http_request::{Fetch, Fetcher};
-use now::{ICNow, Now};
-
-const PROJECT_ID: &str = "tw-signature";
-
-#[update]
-async fn public_key(token: String) -> Result<Vec<u8>, SignatureError> {
-    let derivation_path = verify_id_token(token).await?;
-    let arg = EcdsaPublicKeyArgument {
-        canister_id: None,
-        derivation_path,
-        key_id: ecdsa_key_id(),
-    };
-    //let res = ecdsa_public_key(arg).await.unwrap().0;
-    let res = ecdsa_public_key(arg)
-        .await
-        .map_err(|e| SignatureError::ICError(format!("{:?} {}", e.0, e.1)))?
-        .0;
-    Ok(res.public_key)
-}
-
-#[update]
-async fn sign(message_hash: Vec<u8>, token: String) -> Result<Vec<u8>, SignatureError> {
-    assert!(message_hash.len() == 32);
-    let derivation_path = verify_id_token(token).await?;
-    let arg = SignWithEcdsaArgument {
-        message_hash,
-        derivation_path,
-        key_id: ecdsa_key_id(),
-    };
-    //let res = sign_with_ecdsa(arg).await.unwrap().0;
-    let res = sign_with_ecdsa(arg)
-        .await
-        .map_err(|e| SignatureError::ICError(format!("{:?} {}", e.0, e.1)))?
-        .0;
-    Ok(res.signature)
-}
+mod serde_json_utils;
 
 #[query]
-fn dfx_network() -> &'static str {
-    option_env!("DFX_NETWORK").unwrap_or("local")
-}
-
-#[query]
-fn ecdsa_key_name() -> &'static str {
-    match dfx_network() {
-        "ic" => "key_1",
-        "playground" => "test_key_1",
-        _ => "dfx_test_key",
+async fn http_request(req: RawHttpRequest) -> RawHttpResponse {
+    if req.method.to_lowercase() == *"post" {
+        return http_utils::upgrade_response();
     }
+    http_utils::ok_json_response(&[])
 }
 
-#[query(name = "transformx")]
-pub fn transformx(args: TransformArgs) -> HttpResponse {
-    HttpResponse {
-        status: args.response.status.clone(),
-        body: normalize_body(&args.response.body).unwrap_or(args.response.body),
-        // Strip headers as they contain the Date which is not necessarily the same
-        // and will prevent consensus on the result.
-        headers: Vec::new(),
+#[update]
+async fn http_request_update(req: RawHttpRequest) -> RawHttpResponse {
+    match req.url.as_str() {
+        "/public_key" => api::public_key_for_http(req).await,
+        "/sign" => api::sign_for_http(req).await,
+        _ => RawHttpResponse {
+            status_code: 404_u16,
+            headers: vec![("Content-Type".to_string(), "text/plain".to_string())],
+            body: "404 Page Not Found".to_string().into_bytes(),
+            upgrade: None,
+        },
     }
 }
 
 #[update]
-async fn fetch_keys() -> Result<HttpResponse, SignatureError> {
-    const KEYS_URL: &str =
-        "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com";
-
-    let fetch = Fetcher;
-
-    let arg = ic_cdk::api::management_canister::http_request::CanisterHttpRequestArgument {
-        url: KEYS_URL.to_string(),
-        max_response_bytes: Some(3000),
-        method: ic_cdk::api::management_canister::http_request::HttpMethod::GET,
-        headers: vec![],
-        body: None,
-        transform: Some(TransformContext::from_name(
-            "transformx".to_string(),
-            vec![],
-        )),
-    };
-
-    let response = fetch.fetch(arg).await?;
-
-    Ok(response)
+async fn public_key(
+    req_body: PublicKeyRequestBody,
+) -> Result<PublicKeyResponseBody, SignatureError> {
+    api::public_key(&req_body).await
 }
 
-fn ecdsa_key_id() -> EcdsaKeyId {
-    EcdsaKeyId {
-        curve: EcdsaCurve::Secp256k1,
-        name: ecdsa_key_name().to_string(),
-    }
+// #[update]
+// async fn public_key(token: String) -> Result<Vec<u8>, SignatureError> {
+//     let derivation_path = verify_id_token(&token).await?;
+//     let arg = EcdsaPublicKeyArgument {
+//         canister_id: None,
+//         derivation_path,
+//         key_id: ecdsa_key_id(),
+//     };
+//     //let res = ecdsa_public_key(arg).await.unwrap().0;
+//     let res = ecdsa_public_key(arg)
+//         .await
+//         .map_err(|e| SignatureError::ICError(format!("{:?} {}", e.0, e.1)))?
+//         .0;
+//     Ok(res.public_key)
+// }
+
+#[update]
+async fn sign(req_body: SignRequestBody) -> Result<SignResponseBody, SignatureError> {
+    api::sign(&req_body).await
 }
 
-fn now() -> SystemTime {
-    let now = ICNow;
-    now.now()
-}
+// #[update]
+// async fn sign(message_hash: Vec<u8>, token: String) -> Result<Vec<u8>, SignatureError> {
+//     assert!(message_hash.len() == 32);
+//     let derivation_path = verify_id_token(&token).await?;
+//     let arg = SignWithEcdsaArgument {
+//         message_hash,
+//         derivation_path,
+//         key_id: ecdsa_key_id(),
+//     };
+//     let res = sign_with_ecdsa(arg.clone())
+//         .await
+//         .map_err(|e| SignatureError::ICError(format!("{:?} {}", e.0, e.1)))?
+//         .0;
+//     Ok(res.signature)
+// }
 
-async fn verify_id_token(token: String) -> Result<Vec<Vec<u8>>, SignatureError> {
-    let now = now();
-    jwk_keys_store::verify_id_token(&token, PROJECT_ID, &now).await
-    // refresh_keys(&now).await?;
-    // let v_ret = id_token::decode_verify(&token, PROJECT_ID, &now);
-    // if v_ret.is_ok() {
-    //     Ok(v_ret.unwrap().1.delivation_path())
-    // } else {
-    //     // match v_ret.err().unwrap() {
-    //     //     SignatureError::KidNotFound(_) => {}
-    //     //     _ => _,
-    //     // }
-    //     Err(v_ret.err().unwrap())
-    // }
-}
+// async fn verify_id_token(token: &str) -> Result<Vec<Vec<u8>>, SignatureError> {
+//     let now = ICNow.now();
+//     let verifier = IdTokenVerifierImpl;
+//     verifier.verify_id_token(token, &now).await
+// }
+
+// #[query]
+// fn dfx_network() -> &'static str {
+//     option_env!("DFX_NETWORK").unwrap_or("local")
+// }
+
+// #[query]
+// fn ecdsa_key_name() -> &'static str {
+//     match dfx_network() {
+//         "ic" => "key_1",
+//         "playground" => "test_key_1",
+//         _ => "dfx_test_key",
+//     }
+// }
+
+// fn ecdsa_key_id() -> EcdsaKeyId {
+//     EcdsaKeyId {
+//         curve: EcdsaCurve::Secp256k1,
+//         name: ecdsa_key_name().to_string(),
+//     }
+// }
 
 export_candid!();

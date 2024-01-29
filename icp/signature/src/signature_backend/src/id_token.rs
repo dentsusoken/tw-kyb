@@ -1,5 +1,6 @@
 use crate::b64::b64_decode;
 use crate::error::{ExpectedActual, SignatureError};
+use crate::serde_json_utils;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -108,9 +109,12 @@ fn split3(token: &str) -> Result<[&str; 3], SignatureError> {
         .map_err(|_| SignatureError::IdTokenNotThreeParts)
 }
 
-fn decode<T: DeserializeOwned>(s_b64: &str) -> Result<T, SignatureError> {
+fn decode<T>(s_b64: &str) -> Result<T, SignatureError>
+where
+    T: DeserializeOwned,
+{
     let bytes = b64_decode(s_b64)?;
-    serde_json::from_slice(bytes.as_slice()).map_err(|e| SignatureError::SerdeError(e.to_string()))
+    serde_json_utils::from_slice(bytes.as_slice())
 }
 
 pub fn decode_header(s_b64: &str) -> Result<Header, SignatureError> {

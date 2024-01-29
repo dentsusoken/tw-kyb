@@ -1,12 +1,22 @@
 type ExpectedActual = record { actual : text; expected : text };
-type HttpHeader = record { value : text; name : text };
-type HttpResponse = record {
-  status : nat;
+type PublicKeyRequestBody = record { token : text };
+type PublicKeyResponseBody = record { pub_key : text };
+type RawHttpRequest = record {
+  url : text;
+  method : text;
   body : vec nat8;
-  headers : vec HttpHeader;
+  headers : vec record { text; text };
 };
-type Result = variant { Ok : HttpResponse; Err : SignatureError };
-type Result_1 = variant { Ok : vec nat8; Err : SignatureError };
+type RawHttpResponse = record {
+  body : vec nat8;
+  headers : vec record { text; text };
+  upgrade : opt bool;
+  status_code : nat16;
+};
+type Result = variant { Ok : PublicKeyResponseBody; Err : SignatureError };
+type Result_1 = variant { Ok : SignResponseBody; Err : SignatureError };
+type SignRequestBody = record { token : text; message_hash : text };
+type SignResponseBody = record { signature : text };
 type SignatureError = variant {
   IdTokenNotThreeParts;
   IatFuture : nat64;
@@ -22,13 +32,9 @@ type SignatureError = variant {
   SubEmpty;
   Base64Error : text;
 };
-type TransformArgs = record { context : vec nat8; response : HttpResponse };
 service : {
-  dfx_network : () -> (text) query;
-  ecdsa_key_name : () -> (text) query;
-  fetch_keys : () -> (Result);
-  public_key : (text) -> (Result_1);
-  sign : (vec nat8, text) -> (Result_1);
-  transform : (TransformArgs) -> (HttpResponse) query;
-  transformx : (TransformArgs) -> (HttpResponse) query;
+  http_request : (RawHttpRequest) -> (RawHttpResponse) query;
+  http_request_update : (RawHttpRequest) -> (RawHttpResponse);
+  public_key : (PublicKeyRequestBody) -> (Result);
+  sign : (SignRequestBody) -> (Result_1);
 }
