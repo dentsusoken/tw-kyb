@@ -1,9 +1,12 @@
+use crate::constants::PROJECT_ID;
 use crate::error::SignatureError;
-use crate::fetch_keys::KeysFetcher;
-use crate::http_request::{Fetch, Fetcher};
 use crate::id_token;
 use crate::jwk_keys::JwkKeys;
+use crate::keys_fetch::{KeysFetchInternal, KeysFetchInternalImpl, KeysFetcher};
 use crate::rsa::{rsassa_pkcs1_v15_verify, RSAPublicKey};
+use async_trait::async_trait;
+#[cfg(test)]
+use mockall::automock;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::time::SystemTime;
@@ -16,57 +19,56 @@ fn jwk_keys() -> Rc<RefCell<JwkKeys>> {
     JWK_KEYS.with(|keys| Rc::clone(keys))
 }
 
-async fn refresh_keys_internal<'a, F: Fetch + 'a>(
-    now: &SystemTime,
-    jwk_keys: &Rc<RefCell<JwkKeys>>,
-    fetch: &F,
-) -> Result<(), SignatureError> {
-    if !jwk_keys.borrow().is_valid(now) {
-        force_refresh_keys_internal(now, jwk_keys, fetch).await?;
+#[cfg_attr(test, automock)]
+#[async_trait(?Send)]
+pub trait IdTokenVerifier {
+    async fn verify_id_token(
+        &self,
+        token: &str,
+        now: &SystemTime,
+    ) -> Result<Vec<Vec<u8>>, SignatureError>;
+}
+
+pub struct IdTokenVerifierImpl;
+
+#[async_trait(?Send)]
+impl IdTokenVerifier for IdTokenVerifierImpl {
+    async fn verify_id_token(
+        &self,
+        token: &str,
+        now: &SystemTime,
+    ) -> Result<Vec<Vec<u8>>, SignatureError> {
+        let keys_fetcher = KeysFetcher::new(KeysFetchInternalImpl);
+        verify_id_token_internal(token, PROJECT_ID, now, &jwk_keys(), &keys_fetcher).await
     }
-    Ok(())
 }
 
-async fn force_refresh_keys_internal<'a, F: Fetch + 'a>(
-    now: &SystemTime,
-    jwk_keys: &Rc<RefCell<JwkKeys>>,
-    fetch: &F,
-) -> Result<(), SignatureError> {
-    let keys_fetcher = KeysFetcher::new(fetch);
-    let new_keys = keys_fetcher.fetch_keys(*now).await?;
-    jwk_keys.replace(new_keys);
-    Ok(())
-}
-
-pub async fn verify_id_token(
-    token: &str,
-    project_id: &str,
-    now: &SystemTime,
-) -> Result<Vec<Vec<u8>>, SignatureError> {
-    let fetch = Fetcher;
-    verify_id_token_internal(token, project_id, now, &jwk_keys(), &fetch).await
-}
-
-async fn verify_id_token_internal<'a, F: Fetch + 'a>(
+async fn verify_id_token_internal<I>(
     token: &str,
     project_id: &str,
     now: &SystemTime,
     jwk_keys: &Rc<RefCell<JwkKeys>>,
-    fetch: &F,
-) -> Result<Vec<Vec<u8>>, SignatureError> {
+    keys_fetcher: &KeysFetcher<I>,
+) -> Result<Vec<Vec<u8>>, SignatureError>
+where
+    I: KeysFetchInternal,
+{
     let (header, payload, m_bytes, s_bytes) = id_token::decode_verify(token, project_id, now)?;
-    let pub_key = get_pub_key_internal(&header.kid, now, jwk_keys, fetch).await?;
+    let pub_key = get_pub_key_internal(&header.kid, now, jwk_keys, keys_fetcher).await?;
     rsassa_pkcs1_v15_verify(&pub_key, &m_bytes, &s_bytes).map_err(SignatureError::VerifyError)?;
     Ok(payload.delivation_path())
 }
 
-async fn get_pub_key_internal<'a, F: Fetch + 'a>(
+async fn get_pub_key_internal<I>(
     kid: &str,
     now: &SystemTime,
     jwk_keys: &Rc<RefCell<JwkKeys>>,
-    fetch: &F,
-) -> Result<RSAPublicKey, SignatureError> {
-    refresh_keys_internal(now, jwk_keys, fetch).await?;
+    keys_fetcher: &KeysFetcher<I>,
+) -> Result<RSAPublicKey, SignatureError>
+where
+    I: KeysFetchInternal,
+{
+    refresh_keys_internal(now, jwk_keys, keys_fetcher).await?;
 
     {
         if let Some(key) = jwk_keys.borrow().get_key(kid) {
@@ -76,7 +78,7 @@ async fn get_pub_key_internal<'a, F: Fetch + 'a>(
     }
 
     if jwk_keys.borrow().is_fetchable(now) {
-        force_refresh_keys_internal(now, jwk_keys, fetch).await?;
+        force_refresh_keys_internal(now, jwk_keys, keys_fetcher).await?;
         let keys = jwk_keys.borrow();
         let jwk_key = keys
             .get_key(kid)
@@ -87,16 +89,42 @@ async fn get_pub_key_internal<'a, F: Fetch + 'a>(
     }
 }
 
+async fn refresh_keys_internal<I>(
+    now: &SystemTime,
+    jwk_keys: &Rc<RefCell<JwkKeys>>,
+    keys_fetcher: &KeysFetcher<I>,
+) -> Result<(), SignatureError>
+where
+    I: KeysFetchInternal,
+{
+    if !jwk_keys.borrow().is_valid(now) {
+        force_refresh_keys_internal(now, jwk_keys, keys_fetcher).await?;
+    }
+    Ok(())
+}
+
+async fn force_refresh_keys_internal<I>(
+    now: &SystemTime,
+    jwk_keys: &Rc<RefCell<JwkKeys>>,
+    keys_fetcher: &KeysFetcher<I>,
+) -> Result<(), SignatureError>
+where
+    I: KeysFetchInternal,
+{
+    let new_keys = keys_fetcher.fetch_keys(*now).await?;
+    jwk_keys.replace(new_keys);
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use std::time::Duration;
 
     use super::*;
-    use crate::b64::b64_encode;
-    use crate::fetch_keys::KeyResponse;
-    use crate::http_request::MockFetch;
     use crate::id_token;
     use crate::jwk_keys::JwkKey;
+    use crate::keys_fetch::KeyResponse;
+    use crate::{b64::b64_encode, keys_fetch::MockKeysFetchInternal};
     use candid::Nat;
     use ic_cdk::api::management_canister::http_request::HttpResponse;
     use num_bigint::BigUint;
@@ -133,12 +161,15 @@ mod tests {
             body,
             headers: vec![],
         };
-        let mut mock_fetch = MockFetch::new();
-        mock_fetch.expect_fetch().return_once(|_| Ok(res));
+        let mut internal = MockKeysFetchInternal::new();
+        internal
+            .expect_fetch_keys_internal()
+            .return_once(|| Ok(res));
+        let keys_fetcher = KeysFetcher::new(internal);
         let jwk_keys = Rc::new(RefCell::new(JwkKeys::default()));
         let now = SystemTime::now();
 
-        let ret = force_refresh_keys_internal(&now, &jwk_keys, &mock_fetch).await;
+        let ret = force_refresh_keys_internal(&now, &jwk_keys, &keys_fetcher).await;
         assert!(ret.is_ok());
         assert_eq!(&key, jwk_keys.borrow().get_key(&key.kid).unwrap());
     }
@@ -160,12 +191,15 @@ mod tests {
             body,
             headers: vec![],
         };
-        let mut mock_fetch = MockFetch::new();
-        mock_fetch.expect_fetch().return_once(|_| Ok(res));
+        let mut internal = MockKeysFetchInternal::new();
+        internal
+            .expect_fetch_keys_internal()
+            .return_once(|| Ok(res));
+        let keys_fetcher = KeysFetcher::new(internal);
         let jwk_keys = Rc::new(RefCell::new(JwkKeys::default()));
         let now = SystemTime::now();
 
-        let ret = refresh_keys_internal(&now, &jwk_keys, &mock_fetch).await;
+        let ret = refresh_keys_internal(&now, &jwk_keys, &keys_fetcher).await;
         assert!(ret.is_ok());
         assert_eq!(&key, jwk_keys.borrow().get_key(&key.kid).unwrap());
     }
@@ -182,10 +216,11 @@ mod tests {
         let keys = vec![key.clone()];
         let now = SystemTime::now();
         let max_age = Duration::from_secs(60);
-        let mock_fetch = MockFetch::new();
+        let internal = MockKeysFetchInternal::new();
+        let keys_fetcher = KeysFetcher::new(internal);
         let jwk_keys = Rc::new(RefCell::new(JwkKeys::new(keys, now, max_age)));
 
-        let ret = refresh_keys_internal(&now, &jwk_keys, &mock_fetch).await;
+        let ret = refresh_keys_internal(&now, &jwk_keys, &keys_fetcher).await;
         assert!(ret.is_ok());
         assert_eq!(&key, jwk_keys.borrow().get_key(&key.kid).unwrap());
     }
@@ -211,12 +246,15 @@ mod tests {
             body,
             headers: vec![],
         };
-        let mut mock_fetch = MockFetch::new();
-        mock_fetch.expect_fetch().return_once(|_| Ok(res));
+        let mut internal = MockKeysFetchInternal::new();
+        internal
+            .expect_fetch_keys_internal()
+            .return_once(|| Ok(res));
+        let keys_fetcher = KeysFetcher::new(internal);
         let jwk_keys = Rc::new(RefCell::new(JwkKeys::default()));
         let now = SystemTime::now();
 
-        let pub_key = get_pub_key_internal(&key.kid, &now, &jwk_keys, &mock_fetch)
+        let pub_key = get_pub_key_internal(&key.kid, &now, &jwk_keys, &keys_fetcher)
             .await
             .unwrap();
         assert_eq!(&key, jwk_keys.borrow().get_key(&key.kid).unwrap());
@@ -244,8 +282,11 @@ mod tests {
             body,
             headers: vec![],
         };
-        let mut mock_fetch = MockFetch::new();
-        mock_fetch.expect_fetch().return_once(|_| Ok(res));
+        let mut internal = MockKeysFetchInternal::new();
+        internal
+            .expect_fetch_keys_internal()
+            .return_once(|| Ok(res));
+        let keys_fetcher = KeysFetcher::new(internal);
         let now = SystemTime::now();
         let max_age = Duration::from_secs(3600);
         let key2 = JwkKey {
@@ -261,7 +302,7 @@ mod tests {
             &key.kid,
             &(now + Duration::from_secs(61)),
             &jwk_keys,
-            &mock_fetch,
+            &keys_fetcher,
         )
         .await
         .unwrap();
@@ -289,8 +330,11 @@ mod tests {
             body,
             headers: vec![],
         };
-        let mut mock_fetch = MockFetch::new();
-        mock_fetch.expect_fetch().return_once(|_| Ok(res));
+        let mut internal = MockKeysFetchInternal::new();
+        internal
+            .expect_fetch_keys_internal()
+            .return_once(|| Ok(res));
+        let keys_fetcher = KeysFetcher::new(internal);
         let now = SystemTime::now();
         let max_age = Duration::from_secs(3600);
         let key2 = JwkKey {
@@ -306,7 +350,7 @@ mod tests {
             &key.kid,
             &(now + Duration::from_secs(1)),
             &jwk_keys,
-            &mock_fetch,
+            &keys_fetcher,
         )
         .await;
         assert!(ret.is_err());
@@ -348,15 +392,32 @@ mod tests {
             kid: header.kid.clone(),
             n: n_b64.clone(),
         };
-        let mock_fetch = MockFetch::new();
+        let internal = MockKeysFetchInternal::new();
+        let keys_fetcher = KeysFetcher::new(internal);
 
         let jwk_keys = Rc::new(RefCell::new(JwkKeys::new(vec![key.clone()], now, max_age)));
 
         let derivation_path =
-            verify_id_token_internal(&token, &project_id, &now, &jwk_keys, &mock_fetch)
+            verify_id_token_internal(&token, &project_id, &now, &jwk_keys, &keys_fetcher)
                 .await
                 .unwrap();
 
         assert_eq!(payload.delivation_path(), derivation_path);
+    }
+
+    #[tokio::test]
+    async fn test_verifier_verify_id_token() {
+        let delivation_path = vec![vec![0_u8]];
+        let delivation_path2 = delivation_path.clone();
+        let mut id_token_verifier = MockIdTokenVerifier::new();
+        id_token_verifier
+            .expect_verify_id_token()
+            .return_once(move |_, _| Ok(delivation_path2));
+        let now = SystemTime::now();
+
+        assert_eq!(
+            delivation_path,
+            id_token_verifier.verify_id_token("", &now).await.unwrap()
+        );
     }
 }

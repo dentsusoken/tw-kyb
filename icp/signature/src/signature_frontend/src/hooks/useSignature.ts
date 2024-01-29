@@ -5,16 +5,24 @@ import { signatureBackend } from '@/canisters';
 
 import { isOk } from '@/utils/variantUtils';
 import { auth } from '@/firebaseConfig';
+import * as u8a from 'uint8arrays';
 
-const parseIdToken = (idToken: string) => {
-  console.log('IdToken:', idToken);
-  const [headerBase64, bodyBase64, signature] = idToken.split('.');
-  const header = JSON.parse(Buffer.from(headerBase64, 'base64').toString());
-  const body = JSON.parse(Buffer.from(bodyBase64, 'base64').toString());
+// const BACKEND_URL = 'https://bf3rp-yyaaa-aaaag-achoq-cai.raw.icp0.io';
 
-  console.log('Header:', header);
-  console.log('Body:', body);
-};
+// const parseIdToken = (idToken: string) => {
+//   console.log('IdToken:', idToken);
+//   const [headerBase64, bodyBase64, signature] = idToken.split('.');
+//   const headerStr = u8a.toString(
+//     u8a.fromString(headerBase64, 'base64url'),
+//     'utf8'
+//   );
+//   const bodyStr = u8a.toString(u8a.fromString(bodyBase64, 'base64url'), 'utf8');
+//   const header = JSON.parse(headerStr);
+//   const body = JSON.parse(bodyStr);
+
+//   console.log('Header:', header);
+//   console.log('Body:', body);
+// };
 
 export const useSignature = () => {
   const [publicKey, setPublickey] = useState<Uint8Array | undefined>();
@@ -33,14 +41,32 @@ export const useSignature = () => {
       try {
         if (auth.currentUser) {
           const idToken = await auth.currentUser.getIdToken(true);
-          parseIdToken(idToken);
-          const res = await signatureBackend.public_key(idToken);
+          //parseIdToken(idToken);
+
+          const req_body = { token: idToken };
+          console.log(req_body);
+          const res = await signatureBackend.public_key(req_body);
           if (isOk(res)) {
-            console.log('publicKey:', res.Ok);
-            setPublickey(res.Ok as Uint8Array);
+            const pub_key = u8a.fromString(res.Ok.pub_key, 'base64url');
+            console.log('publicKey:', pub_key);
+            setPublickey(pub_key);
           } else {
             setError(res.Err.toString());
           }
+
+          // {
+          //   const res2 = await fetch(`${BACKEND_URL}/public_key`, {
+          //     method: 'POST',
+          //     body: JSON.stringify(req_body),
+          //   });
+          //   const res2_json = await res2.json();
+          //   if (res2_json.error) {
+          //     console.error(res2_json.error);
+          //   } else {
+          //     const pub_key = u8a.fromString(res2_json.pub_key, 'base64url');
+          //     console.log('fetch publicKey:', pub_key);
+          //   }
+          // }
         }
       } catch (e: any) {
         setError(e.message);
@@ -70,22 +96,38 @@ export const useSignature = () => {
       try {
         if (auth.currentUser) {
           const idToken = await auth.currentUser.getIdToken(true);
-          parseIdToken(idToken);
-          const res = await signatureBackend.sign(hash, idToken);
+
+          const req_body = {
+            token: idToken,
+            message_hash: u8a.toString(hash, 'base64url'),
+          };
+          console.log(req_body);
+          const res = await signatureBackend.sign(req_body);
           if (isOk(res)) {
-            console.log('signature:', res.Ok);
-            setSignature(res.Ok as Uint8Array);
+            const signature = u8a.fromString(res.Ok.signature, 'base64url');
+            console.log('signature:', signature);
+            setSignature(signature);
           } else {
             setError(res.Err.toString());
           }
+
+          // {
+          //   const res2 = await fetch(`${BACKEND_URL}/sign`, {
+          //     method: 'POST',
+          //     body: JSON.stringify(req_body),
+          //   });
+          //   const res2_json = await res2.json();
+          //   if (res2_json.error) {
+          //     console.error(res2_json.error);
+          //   } else {
+          //     const signature = u8a.fromString(
+          //       res2_json.signature,
+          //       'base64url'
+          //     );
+          //     console.log('fetch signature:', signature);
+          //   }
+          // }
         }
-        // const res = await signatureBackend.sign(hash);
-        // if (isOk(res)) {
-        //   console.log('signature:', res.Ok);
-        //   setSignature(res.Ok as Uint8Array);
-        // } else {
-        //   setError(res.Err);
-        // }
       } catch (e: any) {
         setError(e.message);
       } finally {
