@@ -32,4 +32,5 @@ export type RootStackParamList = {
   QRScan: undefined;
   QRScanNav: undefined;
   CredentialOfferResult: undefined;
+  SignatureScreen: undefined;
 };

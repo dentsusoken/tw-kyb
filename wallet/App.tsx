@@ -1,3 +1,4 @@
+import './globals';
 import { RootNavigator } from '@/navigations/RootNavigator';
 import { RecoilRoot } from 'recoil';
 import { LogBox } from 'react-native';
