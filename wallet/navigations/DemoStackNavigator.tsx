@@ -11,6 +11,7 @@ import { IconButton } from '@/components/IconButton';
 import { QRScanStackNavigator } from './QRScanStackNavigator';
 import { DemoMenu } from '@/screens/DemoMenuScreen';
 import { CredentialOfferResultScreen } from '@/screens/CredentialOfferResultScreen';
+import { SignatureScreen } from '@/screens/SignatureScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -52,6 +53,7 @@ export const DemoStackNavigator: FC = () => {
           name="CredentialOfferResult"
           component={CredentialOfferResultScreen}
         />
+        <Stack.Screen name="SignatureScreen" component={SignatureScreen} />
       </Stack.Group>
     </Stack.Navigator>
   );
