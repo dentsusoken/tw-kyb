@@ -1,8 +1,7 @@
-const SKEW_TIME = 60 * 5;
+import { getCurrentTimeInSeconds } from '@/utils/now';
+export { getCurrentTimeInSeconds } from '@/utils/now';
 
-export const getCurrentTimeInSeconds = (): number => {
-  return Math.floor(Date.now() / 1000);
-};
+const SKEW_TIME = 60 * 5;
 
 export const validIssuedAt = (
   issuedAt: number,
