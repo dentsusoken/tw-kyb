@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import sha256 from 'fast-sha256';
 import { ecdsaVerify } from 'secp256k1';
 import { auth } from '@/firebaseConfig';
-import { getPubKey, sign } from '@/auth-session/tECDSA';
+import { getPubKey, sign } from '@/icp/tECDSA';
 
 export const useSignature = () => {
   const [publicKey, setPublickey] = useState<Uint8Array | undefined>();
