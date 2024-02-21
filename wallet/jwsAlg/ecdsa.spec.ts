@@ -15,11 +15,11 @@ const testGenKeyPair = (ec: elliptic.ec) => {
 };
 
 const testSignAndVerify = (ec: elliptic.ec) => {
-  const keyPair = ecdsa.genKeyPair(ec);
+  const { privateKey, publicKey } = ecdsa.genKeyPair(ec);
   const msgHash = sha256(new TextEncoder().encode('hello'));
-  const signature = ecdsa.sign(ec, keyPair.privateKey, msgHash);
+  const signature = ecdsa.sign(ec, { privateKey, msgHash });
 
-  expect(ecdsa.verify(ec, keyPair.publicKey, msgHash, signature)).toBeTruthy;
+  expect(ecdsa.verify(ec, { publicKey, msgHash, signature })).toBeTruthy;
 };
 
 const testXYFromPublicKey = (ec: elliptic.ec) => {
@@ -51,6 +51,14 @@ const testXYDFromPrivateKey = (ec: elliptic.ec) => {
   expect(privateKey).toEqual(privateKey2);
 };
 
+const testPublicKeyFromXY = (ec: elliptic.ec) => {
+  const { publicKey } = ecdsa.genKeyPair(ec);
+  const xy = ecdsa.xyFromPublicKey(ec, publicKey);
+  const publicKey2 = ecdsa.publicKeyFromXY(ec, xy);
+
+  expect(publicKey).toEqual(publicKey2);
+};
+
 describe('ecdsa', () => {
   it('genKeyPair', () => {
     testGenKeyPair(secp256k1);
@@ -70,5 +78,10 @@ describe('ecdsa', () => {
   it('xydFromPrivateKey', () => {
     testXYDFromPrivateKey(secp256k1);
     testXYDFromPrivateKey(p256);
+  });
+
+  it('publicKeyFromXY', () => {
+    testPublicKeyFromXY(secp256k1);
+    testPublicKeyFromXY(p256);
   });
 });

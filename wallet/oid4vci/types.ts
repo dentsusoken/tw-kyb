@@ -1,3 +1,5 @@
+import { PublicJwk } from '@/jwsAlg/types';
+
 type CredentialConfiguration = {
   format: string;
   claims: {
@@ -24,6 +26,51 @@ export type OpenidConfiguration = {
   introspection_endpoint: string;
   pushed_authorization_request_endpoint: string;
   [index: string]: any;
+};
+
+export type ParsedHeader = {
+  typ: string;
+  alg: string;
+  kid: string;
+  [index: string]: any;
+};
+
+export type ParsedPayload = {
+  _sd: string[];
+  _sd_alg: string;
+  vct: string;
+  iss: string;
+  cnf: {
+    jwk: {
+      kty: string;
+      crv: string;
+      x: string;
+      y: string;
+      [index: string]: string;
+    };
+  };
+  iat: number;
+  [index: string]: any;
+};
+
+export type DecodedJwt = {
+  jwt: string;
+  msgHash: Uint8Array;
+  signature: Uint8Array;
+  parsedHeader: ParsedHeader;
+  parsedPayload: ParsedPayload;
+};
+
+export type DecodedDisclosure = {
+  disclosure: string;
+  digest: string;
+  parsedDisclosure: string[];
+};
+
+export type DecodedSdJwt = {
+  sdJwt: string;
+  decodedJwt: DecodedJwt;
+  decodedDisclosures: DecodedDisclosure[];
 };
 
 export type TokenRequest4PreAuthorizedCodeFlow = {
@@ -53,4 +100,16 @@ export type CredentialResponse = {
   credential: string;
   c_nonce: string;
   c_nonce_expires_in: number;
+};
+
+export type JwtVcIssuerResponse = {
+  issuer: string;
+  jwks_uri?: string;
+  jwks?: {
+    keys: PublicJwk[];
+  };
+};
+
+export type JwksResponse = {
+  keys: PublicJwk[];
 };

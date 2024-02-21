@@ -2,8 +2,7 @@ import { describe, it, expect } from 'vitest';
 import sha256 from 'fast-sha256';
 import * as u8a from 'uint8arrays';
 import { Alg } from './types';
-import { es256k } from './es256k';
-import { es256 } from './es256';
+import { es256, es256k } from './ECDSAAlg';
 
 const testGenKeyPair = (alg: Alg) => {
   const keyPair = alg.genKeyPair();
@@ -13,11 +12,11 @@ const testGenKeyPair = (alg: Alg) => {
 };
 
 const testSignAndVerify = (alg: Alg) => {
-  const keyPair = alg.genKeyPair();
+  const { publicKey, privateKey } = alg.genKeyPair();
   const msgHash = sha256(new TextEncoder().encode('hello'));
-  const signature = alg.sign(keyPair.privateKey, msgHash);
+  const signature = alg.sign({ privateKey, msgHash });
 
-  expect(alg.verify(keyPair.publicKey, msgHash, signature)).toBeTruthy;
+  expect(alg.verify({ publicKey, msgHash, signature })).toBeTruthy;
 };
 
 const testJwkFromPublicKey = (alg: Alg) => {
@@ -39,9 +38,11 @@ const testJwkFromPublicKey = (alg: Alg) => {
 const testJwkFromPrivateKey = (alg: Alg) => {
   const { publicKey, privateKey } = alg.genKeyPair();
   const jwk = alg.jwkFromPrivateKey(privateKey);
+  //console.log(JSON.stringify(jwk, undefined, 2));
 
   expect(jwk.kty).toEqual('EC');
   expect(jwk.crv).toEqual(alg.crv());
+  expect(jwk.alg).toEqual(alg.alg());
 
   const xU8a = u8a.fromString(jwk.x, 'base64url');
   const yU8a = u8a.fromString(jwk.y, 'base64url');
@@ -55,7 +56,25 @@ const testJwkFromPrivateKey = (alg: Alg) => {
   expect(privateKey).toEqual(privateKey2);
 };
 
-describe('alg', () => {
+const testPublicKeyFromXY = (alg: Alg) => {
+  const { publicKey } = alg.genKeyPair();
+  const { x, y } = alg.jwkFromPublicKey(publicKey);
+  const publicKey2 = alg.publicKeyFromXY({ x, y });
+
+  expect(publicKey).toEqual(publicKey2);
+};
+
+const testIsTargetJwk = (alg: Alg, other: Alg) => {
+  const { publicKey } = alg.genKeyPair();
+  const { publicKey: otherPublicKey } = other.genKeyPair();
+  const jwk = alg.jwkFromPublicKey(publicKey);
+  const otherJwk = other.jwkFromPublicKey(otherPublicKey);
+
+  expect(alg.isTargetJwk(jwk)).toBeTruthy;
+  expect(alg.isTargetJwk(otherJwk)).toBeFalsy;
+};
+
+describe('ECDSAAlg', () => {
   it('genKeyPair', () => {
     testGenKeyPair(es256k);
     testGenKeyPair(es256);
@@ -74,5 +93,15 @@ describe('alg', () => {
   it('jwkFromPrivateKey', () => {
     testJwkFromPrivateKey(es256k);
     testJwkFromPrivateKey(es256);
+  });
+
+  it('publicKeyFromXY', () => {
+    testPublicKeyFromXY(es256k);
+    testPublicKeyFromXY(es256);
+  });
+
+  it('isTargetJwk', () => {
+    testIsTargetJwk(es256k, es256);
+    testIsTargetJwk(es256, es256k);
   });
 });

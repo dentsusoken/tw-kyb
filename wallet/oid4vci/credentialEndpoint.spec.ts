@@ -41,7 +41,7 @@ describe('credentialEndpoint', () => {
       const msgHash = sha256(
         new TextEncoder().encode(headerAndPayloadBase64Url),
       );
-      const signature = es256k.sign(privateKey, msgHash);
+      const signature = es256k.sign({ privateKey, msgHash });
       const signatureBase64Url = u8a.toString(signature, 'base64url');
       const keyProofJwt = `${headerAndPayloadBase64Url}.${signatureBase64Url}`;
       const credentialConfigurationId = 'IdentityCredential';

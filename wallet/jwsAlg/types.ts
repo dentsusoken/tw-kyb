@@ -3,22 +3,35 @@ export type KeyPair = {
   privateKey: Uint8Array;
 };
 
-export type PUBLIC_KEY_PARAMS = {
+export type PublicKeyParams = {
   x: string;
   y: string;
 };
 
-export type PRIVATE_KEY_PARAMS = PUBLIC_KEY_PARAMS & {
+export type PrivateKeyParams = PublicKeyParams & {
   d: string;
 };
 
-type COMMON_JWK = {
+type CommonJwk = {
+  alg: string;
   kty: string;
   crv: string;
+  kid?: string;
 };
 
-export type PublicJwk = COMMON_JWK & PUBLIC_KEY_PARAMS;
-export type PrivateJwk = COMMON_JWK & PRIVATE_KEY_PARAMS;
+export type PublicJwk = CommonJwk & PublicKeyParams;
+export type PrivateJwk = CommonJwk & PrivateKeyParams;
+
+export type SignParams = {
+  privateKey: Uint8Array;
+  msgHash: Uint8Array;
+};
+
+export type VerifyParams = {
+  publicKey: Uint8Array;
+  msgHash: Uint8Array;
+  signature: Uint8Array;
+};
 
 export interface Alg {
   alg: () => string;
@@ -27,15 +40,15 @@ export interface Alg {
 
   genKeyPair: () => KeyPair;
 
-  sign: (privateKey: Uint8Array, msgHash: Uint8Array) => Uint8Array;
+  sign: ({ privateKey, msgHash }: SignParams) => Uint8Array;
 
-  verify: (
-    publicKey: Uint8Array,
-    msgHash: Uint8Array,
-    signature: Uint8Array,
-  ) => boolean;
+  verify: ({ publicKey, msgHash, signature }: VerifyParams) => boolean;
 
   jwkFromPublicKey: (publicKey: Uint8Array) => PublicJwk;
 
   jwkFromPrivateKey: (privateKey: Uint8Array) => PrivateJwk;
+
+  publicKeyFromXY: ({ x, y }: PublicKeyParams) => Uint8Array;
+
+  isTargetJwk: (jwk: PublicJwk) => boolean;
 }
