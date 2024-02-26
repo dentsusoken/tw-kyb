@@ -3,8 +3,8 @@ import path from 'path';
 import dotenv from 'dotenv';
 
 import { fetchJwks, getPublicKeyAndAlg } from './jwks';
-import { PublicJwk } from '../jwsAlg/types';
-import { es256 } from '../jwsAlg';
+import { PublicJwk } from '../jwt-alg/types';
+import { es256 } from '../jwt-alg';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.test') });
 

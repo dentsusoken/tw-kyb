@@ -1,4 +1,4 @@
-import { Alg } from '../jwsAlg';
+import { Alg } from '../jwt-alg';
 import * as u8a from 'uint8arrays';
 import { getCurrentTimeInSeconds } from '../utils/now';
 

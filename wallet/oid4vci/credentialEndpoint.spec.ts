@@ -8,7 +8,7 @@ import { fetchOpenidConfiguration } from './openidConfiguration';
 import { fetchIssuerMetadata } from './issuerMetadata';
 import { fetch4PreAuthorizedCodeFlow } from './tokenEndpoint';
 import { fetch4VcSdJwt } from './credentialEndpoint';
-import { es256k } from '../jwsAlg';
+import { es256k } from '../jwt-alg';
 import { buildHeaderAndPayload } from './keyProof';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.test') });

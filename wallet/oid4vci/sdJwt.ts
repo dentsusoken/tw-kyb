@@ -1,7 +1,6 @@
 import * as u8a from 'uint8arrays';
 import sha256 from 'fast-sha256';
 import { DecodedSdJwt, DecodedJwt, DecodedDisclosure } from './types';
-import { PublicJwk } from '@/jwsAlg/types';
 
 export const decodeSdJwt = (sdJwt: string): DecodedSdJwt => {
   const [jwt, ...disclosures] = sdJwt.split('~');

@@ -3,7 +3,7 @@ import * as u8a from 'uint8arrays';
 import dotenv from 'dotenv';
 import path from 'path';
 
-import { es256 } from '../jwsAlg';
+import { es256 } from '../jwt-alg';
 import { decodeSdJwt, decodeJwt, decodeDisclosure } from './sdJwt';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.test') });

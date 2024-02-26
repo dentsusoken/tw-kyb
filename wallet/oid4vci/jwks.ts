@@ -1,7 +1,7 @@
-import { PublicJwk } from '../jwsAlg/types';
+import { PublicJwk } from '../jwt-alg/types';
 import { JwksResponse, JwtVcIssuerResponse } from './types';
-import { Alg } from '../jwsAlg/types';
-import { getTargetAlg } from '../jwsAlg';
+import { Alg } from '../jwt-alg/types';
+import { getTargetAlg } from '../jwt-alg';
 
 export const fetchJwks = async (issuer: string): Promise<PublicJwk[]> => {
   const res = await fetch(`${issuer}/.well-known/jwt-vc-issuer`);

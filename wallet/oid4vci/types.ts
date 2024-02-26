@@ -1,4 +1,4 @@
-import { PublicJwk } from '@/jwsAlg/types';
+import { PublicJwk } from '@/jwt-alg/types';
 
 type CredentialConfiguration = {
   format: string;

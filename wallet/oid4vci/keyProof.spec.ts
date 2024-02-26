@@ -3,7 +3,7 @@ import * as u8a from 'uint8arrays';
 import dotenv from 'dotenv';
 import path from 'path';
 
-import { es256k } from '../jwsAlg';
+import { es256k } from '../jwt-alg';
 import { buildHeader, buildPayload, buildHeaderAndPayload } from './keyProof';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.test') });
