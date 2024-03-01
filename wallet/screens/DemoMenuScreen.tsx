@@ -5,16 +5,13 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { RootStackParamList } from '@/types';
 import { Title } from '@/components/Title';
-import { useCredentialOfferState } from '@/hooks/oid4vci/useCredentialOfferState';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'DemoMenu'>;
 };
 
 export const DemoMenu: FC<Props> = ({ navigation }) => {
-  const { execCredentialOffer } = useCredentialOfferState();
   const exec = async () => {
-    await execCredentialOffer();
     navigation.navigate('CredentialOfferResult');
   };
 
