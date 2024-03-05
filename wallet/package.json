@@ -20,6 +20,8 @@
     "@types/uuid": "^9.0.8",
     "base64-js": "^1.5.1",
     "date-fns": "^2.30.0",
+    "did-jwt": "^8.0.1",
+    "did-resolver": "^4.1.0",
     "dotenv": "^16.4.1",
     "elliptic-expo": "^6.5.3",
     "expo": "~49.0.7",
