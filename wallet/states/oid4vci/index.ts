@@ -1,13 +1,12 @@
 import { atom } from 'recoil';
-import { CredentialOffer } from '@/types/oid4vci';
-import { AuthTokenResponse } from '@/auth-session/tokenRequest';
+import { CredentialList, CredentialOfferList } from '@/types/oid4vci';
 
-export const CredentialOfferState = atom<CredentialOffer | undefined>({
-  key: 'credentialOff er',
-  default: undefined,
+export const CredentialOfferListState = atom<CredentialOfferList>({
+  key: 'credentialOffer',
+  default: [],
 });
 
-export const tokenState = atom<AuthTokenResponse | undefined>({
-  key: 'token',
-  default: undefined,
+export const CredentialListState = atom<CredentialList>({
+  key: 'credential',
+  default: [],
 });
