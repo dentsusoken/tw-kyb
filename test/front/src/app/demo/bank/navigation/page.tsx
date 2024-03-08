@@ -2,6 +2,7 @@
 import Button from '@/components/demo/Button';
 import FlowNavigation from '@/components/demo/FlowNavigation';
 import { useLocale } from '@/hooks/useLocale';
+import Image from 'next/image';
 
 export default function Pagesess() {
   const { t } = useLocale();
@@ -12,7 +13,7 @@ export default function Pagesess() {
         <h2 className="absolute top-4 left-12 text-3xl font-bold tracking-wide">
           {t.PAGES.BANK_NAVIGATION.TITLE}
         </h2>
-        <img src="/piggy-bank.svg" alt="piggy-bank" className="w-full" />
+        <Image src="/piggy-bank.svg" alt="piggy-bank" className="w-full" />
       </div>
       <div className="flex py-3">
         {/* TODO このボタンはどこに遷移するんだ？ */}

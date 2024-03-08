@@ -46,8 +46,8 @@ export default function Pagesess() {
           </tr>
         </thead>
         <tbody className="text-sm leading-6">
-          {application.map((v) => (
-            <tr className="border-b h-[69px]">
+          {application.map((v, i) => (
+            <tr className="border-b h-[69px]" key={i}>
               <td>
                 <p>{new Date().toLocaleDateString()}</p>
               </td>

@@ -66,7 +66,7 @@ export default function COE() {
 
   const modal = (
     <>
-      <div className="w-screen h-full absolute inset-0 bg-demo-modal bg-blend-screen opacity-70"></div>
+      <div className="w-screen h-screen absolute inset-0 bg-demo-modal bg-blend-screen opacity-70"></div>
       <div className="fixed inset-1/2 -translate-x-1/2 -translate-y-1/2 w-[272px] h-fit p-4 rounded-xl bg-white">
         <div className="w-full pt-4 pb-4">
           <p>以下のデジタル証明を申請先に開示して良いですか？</p>
@@ -108,7 +108,7 @@ export default function COE() {
               <label htmlFor="birthday" className="block pb-2">
                 開示するデジタル証明
               </label>
-              <div className="w-[311px] h-[100px] px-4 py-3 border border-black rounded-lg">
+              <div className="w-[311px] h-fit px-4 py-3 border border-black rounded-lg">
                 <p>本人確認(KYC)</p>
               </div>
             </div>

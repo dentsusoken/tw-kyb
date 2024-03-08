@@ -1,4 +1,4 @@
-export default {
+const sitemap = {
   '00_login': {},
   '01_home': {
     '10_createAccount': {
@@ -16,3 +16,5 @@ export default {
     // bank: { bankRequest: {}, bankConfirm: {}, bankDone: {} },
   },
 };
+
+export default sitemap;

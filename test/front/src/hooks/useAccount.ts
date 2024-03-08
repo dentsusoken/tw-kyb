@@ -3,6 +3,7 @@ import { useFirebaseAuth } from './useFirebaseAuth';
 import { useGroupAccount } from './useGroupAccount';
 import { useAtom } from 'jotai';
 import { atomWithStorage } from 'jotai/utils';
+import { usePersonalAccount } from './usePersonalAccount';
 
 type AccountList = {
   name: string;
@@ -23,20 +24,21 @@ export const useAccount = () => {
   const [currentAccount, setCurrentAccount] = useAtom(accountState);
   const { user } = useFirebaseAuth();
   const { groupList } = useGroupAccount();
+  const { account } = usePersonalAccount();
 
   useEffect(() => {
     const l: AccountList[] = [];
-    if (user) {
+    if (account) {
       l.push({
-        name: user.displayName ? user.displayName : '',
-        id: user.uid,
+        name: `${account.lastName}${account.firstName}`,
+        id: account.id,
         current: true,
         isGroup: false,
       });
-      if (!currentAccount) {
+      if (!currentAccount.id) {
         setCurrentAccount({
-          name: user.displayName ? user.displayName : '',
-          id: user.uid,
+          name: `${account.lastName}${account.firstName}`,
+          id: account.id,
           current: true,
           isGroup: false,
         });

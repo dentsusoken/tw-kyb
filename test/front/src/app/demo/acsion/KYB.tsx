@@ -10,6 +10,8 @@ import prefecture from '@/consts/prefecture';
 
 export default function KYB() {
   const router = useRouter();
+  const [toggle, setToggle] = useState(false);
+  const [submit, setSubmit] = useState(false);
   const d = new Date(Date.now());
   const [year, setYear] = useState(d.getFullYear().toString());
   const [month, setMonth] = useState(d.getMinutes().toString());
@@ -41,9 +43,68 @@ export default function KYB() {
 
     router.push('/demo/acsion/confirm?type=kyb');
   };
+
+  const modal = (
+    <>
+      <div className="w-screen h-screen absolute inset-0 bg-demo-modal bg-blend-screen opacity-70"></div>
+      <div className="fixed inset-1/2 -translate-x-1/2 -translate-y-1/2 w-[272px] h-fit p-4 rounded-xl bg-white">
+        <div className="w-full pt-4 pb-4">
+          <p>以下のデジタル証明を申請先に開示して良いですか？</p>
+          <ul className="pl-5 text-xl font-bold list-disc">
+            <li>本人確認(KYC)</li>
+            <li>在籍証明</li>
+          </ul>
+        </div>
+        <Button
+          label="OK"
+          color="blue"
+          size="xs"
+          variant="fill"
+          onClick={() => {
+            setSubmit(true);
+            setToggle(!toggle);
+          }}
+        />
+        <button
+          className="w-60 h-14 pt-6 text-demo-blue font-bold underline tracking-widest"
+          onClick={() => setToggle(!toggle)}
+        >
+          キャンセル
+        </button>
+      </div>
+    </>
+  );
+
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
-      <div className="w-fit mx-auto">
+      {toggle && modal}
+      <div className="w-fit mx-auto pb-4">
+        <h2 className="text-[24px] pb-6">
+          デジタル証明の開示
+          <span className="pl-2 text-xs text-demo-alert">必須</span>
+        </h2>
+        <div className="flex justify-center">
+          {submit ? (
+            <div className="w-fit mx-auto pb-10">
+              <label htmlFor="birthday" className="block pb-2">
+                開示するデジタル証明
+              </label>
+              <div className="w-[311px] h-fit px-4 py-3 border border-black rounded-lg">
+                <p>本人確認(KYC)</p>
+                <p>在籍証明</p>
+              </div>
+            </div>
+          ) : (
+            <Button
+              label={`${submit ? '開示済' : '開示する'}`}
+              color={`${submit ? 'gray' : 'green'}`}
+              size="small"
+              variant="fill"
+              onClick={() => setToggle(true)}
+              disabled={submit}
+            />
+          )}
+        </div>
         <h2 className="text-[28px] pb-6">申請内容</h2>
         <div className="flex flex-col gap-2 pb-4">
           <TextInput<KYB>

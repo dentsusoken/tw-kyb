@@ -1,5 +1,6 @@
 import { useLocale } from '@/hooks/useLocale';
 import { useQRCode } from 'next-qrcode';
+import Image from 'next/image';
 
 export type FlowNavigationProps = {
   number: string;
@@ -42,7 +43,7 @@ export default function FlowNavigation({
         </div>
         <div className="h-20 w-8 mx-3 bg-gray-300 triangle"></div>
         <div className="flex items-center h-64 w-32">
-          <img src={img} alt={img} />
+          <Image src={img} alt={img} />
         </div>
       </div>
     </div>

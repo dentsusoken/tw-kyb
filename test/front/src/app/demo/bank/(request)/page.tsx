@@ -6,6 +6,7 @@ import { IoMdInformationCircleOutline } from 'react-icons/io';
 import { useQRCode } from 'next-qrcode';
 import { useLocale } from '@/hooks/useLocale';
 import { useState } from 'react';
+import Image from "next/image"
 
 export default function Pagesess() {
   const { Canvas } = useQRCode();
@@ -50,7 +51,7 @@ export default function Pagesess() {
     <>
       <PageTitle title={t.PAGES.BANK.TITLE} />
       <div className="w-fit mx-auto">
-        <img alt="image" src={'/piggy-bank.svg'} />
+        <Image alt="image" src={'/piggy-bank.svg'} />
       </div>
       <div className="w-fit mx-auto pt-16">
         <Button

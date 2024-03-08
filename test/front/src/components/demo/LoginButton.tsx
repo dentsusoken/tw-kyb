@@ -35,15 +35,13 @@ const WebAuth = () => {
 
 export default function LoginButton({ type }: LoginButtonProps) {
   const { login } = useFirebaseAuth();
-  const router = useRouter();
+  // const router = useRouter();
 
   return type === 'google' ? (
     <Google
       onClick={async () => {
         await login();
-        console.log('login completed');
-        // setTimeout(() => {}, 1000);
-        router.push('/demo/wallet/01_home');
+        // router.push('/demo/wallet/01_home');
       }}
     />
   ) : (

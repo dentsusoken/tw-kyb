@@ -39,8 +39,6 @@ export const useApplication = () => {
     return null;
   };
 
-  const update = () => {};
-
   const issue = (id: string) => {
     setApplication((prev) =>
       prev.map((v) => {

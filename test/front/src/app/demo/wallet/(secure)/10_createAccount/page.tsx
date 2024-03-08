@@ -30,7 +30,7 @@ export default function Pagesess() {
         >
           <div className="flex flex-col items-center justify-center">
             <Button
-              label={t.PAGES['CREATE_ACCOUNT'].MENU_PERSONAL_ACCOUNT_CREATE}
+              label={'個人アカウント管理'}
               color="blue"
               size="small"
               variant="outline"
@@ -41,7 +41,7 @@ export default function Pagesess() {
         <Card Icon={CardGroup} label={t.PAGES['CREATE_ACCOUNT'].GROUP_ACCOUNT}>
           <div className="flex flex-col gap-6 items-center justify-center">
             <Button
-              label={t.PAGES['CREATE_ACCOUNT'].MENU_GROUP_ACCOUNT_CREATE}
+              label={'グループアカウント管理'}
               color="blue"
               size="small"
               variant="outline"

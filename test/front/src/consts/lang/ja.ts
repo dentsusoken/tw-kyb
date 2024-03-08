@@ -1,11 +1,11 @@
-export default {
+const ja =  {
   PAGES: {
     LOGIN: {
       TITLE: 'ログイン',
     },
     HOME: {
       TITLE: 'Wallet ホーム',
-      MENU_ADD_ACCOUNT: 'アカウント登録',
+      MENU_ADD_ACCOUNT: 'アカウント作成',
       MENU_VC_APPLICATION: 'デジタル証明申請',
       MENU_APPLICATION_LIST: 'デジタル証明申請一覧',
       MENU_VC_LIST: 'デジタル証明一覧',
@@ -213,3 +213,5 @@ export default {
     },
   },
 };
+
+export default ja;
