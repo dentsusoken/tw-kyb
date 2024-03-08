@@ -35,8 +35,6 @@
   12. java-oauth-serverのデプロイ
   13. walletアプリの起動
 
-walletアプリ起動後、"Trusted Web Subsidy"のアプリケーション画面が表示されれば構築完了です。
-
 詳細については、[環境構築手順書](https://github.com/dentsusoken/tw-kyb/raw/main/doc/%E3%83%87%E3%83%A2%E7%92%B0%E5%A2%83%E6%A7%8B%E7%AF%89%E6%89%8B%E9%A0%86.docx)を御覧ください。
 
 ## 注意事項
