@@ -2,7 +2,10 @@
 これは、2023年度Trusted WebのKYC/KYBプロジェクトです。
 
 ## プロジェクト概要
-中小法人・個人事業者向けの補助金・給付金申請において、本人確認と実在証明に必要となる証明書類を検証可能な形でデータ化し、関係者間で安全な方法でデータ共有することで、補助金・給付金の申請手続きを効率化するとともに、データの利活用が可能となる仕組みの提供を目指しています。
+
+[基本設計書](https://github.com/dentsusoken/tw-kyb/blob/main/doc/%E5%9F%BA%E6%9C%AC%E8%A8%AD%E8%A8%88%E6%9B%B8.pdf)
+
+[要件定義書](https://github.com/dentsusoken/tw-kyb/blob/main/doc/%E8%A6%81%E4%BB%B6%E5%AE%9A%E7%BE%A9%E6%9B%B8.pdf)
 
 
 ## 動作環境
