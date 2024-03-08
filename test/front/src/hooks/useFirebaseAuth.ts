@@ -58,12 +58,12 @@ export const useFirebaseAuth = () => {
   useEffect(() => {
     const unregister = onAuthStateChanged(auth, (user) => {
       setUser(user);
-      if (auth.currentUser) {
-        auth.currentUser.getIdToken(true).then((idToken) => {
-          parseIdToken(idToken);
-          //console.log('IdToken:', idToken);
-        });
-      }
+      // if (auth.currentUser) {
+      //   auth.currentUser.getIdToken(true).then((idToken) => {
+      // parseIdToken(idToken);
+      //console.log('IdToken:', idToken);
+      //   });
+      // }
     });
     return unregister;
   });
