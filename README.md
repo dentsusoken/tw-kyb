@@ -1,4 +1,4 @@
-# tw-kyb
+# KYC/KYBに基づいたトラストのある取引を促進する新しい仕組み
 これは、2023年度Trusted WebのKYC/KYBプロジェクトです。
 
 ## プロジェクト概要
@@ -12,11 +12,19 @@
 
 - Node.js 18.x
 
+- React.js 18.2.x
+
+- Next.js v14.1.x
+
 - Expo 49.x
 
-- Next.js 13.x
+- rustc 1.76.x
+
+- dfx 0.17.x
 
 - Java 1.8.x
+
+- apache-maven 3.8.x
 
 ## 環境構築手順
 
