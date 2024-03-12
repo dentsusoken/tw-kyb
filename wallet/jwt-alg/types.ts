@@ -33,14 +33,18 @@ export type VerifyParams = {
   signature: Uint8Array;
 };
 
-export interface Alg {
+export interface Signer {
+  sign: ({ privateKey, msgHash }: SignParams) => Uint8Array;
+}
+
+export interface Alg extends Signer {
   alg: () => string;
   crv: () => string;
   kty: () => string;
 
   genKeyPair: () => KeyPair;
 
-  sign: ({ privateKey, msgHash }: SignParams) => Uint8Array;
+  //sign: ({ privateKey, msgHash }: SignParams) => Uint8Array;
 
   verify: ({ publicKey, msgHash, signature }: VerifyParams) => boolean;
 

@@ -3,7 +3,7 @@ import { es256k, es256 } from './ECDSAAlg';
 
 export { es256k, es256 } from './ECDSAAlg';
 
-export { Alg } from './types';
+export { Alg, Signer } from './types';
 
 export const algs: Alg[] = [es256, es256k];
 
