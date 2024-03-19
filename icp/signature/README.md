@@ -34,7 +34,7 @@ dfx identity use dev
 Using identity: "dev".
 ```
 
-devアカウントは、Docker環境をbuildすると消えてしまうので、アカウントのバックアップをとります。実際には、アカウントの秘密鍵をPEMファイルとしてエクスポートします。次のコマンドを実行してください。
+devアカウントは、Docker環境がなくなると消えてしまうので、アカウントのバックアップをとります。実際には、アカウントの秘密鍵をPEMファイルとしてエクスポートします。次のコマンドを実行してください。
 
 ```bash
 dfx identity export dev > dev.pem
