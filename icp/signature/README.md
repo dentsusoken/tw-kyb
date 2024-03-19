@@ -75,7 +75,11 @@ Cycles Walletは、次のコマンドで作成します。
 WALLET=$(dfx ledger --network ic create-canister $(dfx identity get-principal) --amount 5)
 dfx identity --network ic deploy-wallet $WALLET
 dfx identity --network ic set-wallet $WALLET
+echo $WALLET
+xxxxx-xxxxx-xxxxx-xxxxx-cai
 ```
+
+Cycles WalletのPrinciple ID(xxxxx-xxxxx-xxxxx-xxxxx-cai)は、後で必要になる場合があるかもしれないので、何らかの手段で保存しておきましょう。
 
 Cycles Walletの残高を確認します。Cycles Walletでは、残高はcyclesに変換されて管理されています。
 
