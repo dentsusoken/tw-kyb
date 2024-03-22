@@ -5,14 +5,13 @@ RUN wget https://mirrors.estointernet.in/apache/maven/maven-3/3.8.5/binaries/apa
 RUN tar -xvf apache-maven-3.8.5-bin.tar.gz
 RUN mv apache-maven-3.8.5 /opt/
 
+WORKDIR /workspace
+RUN chown -R vscode:vscode /workspace
+
 RUN --mount=type=ssh,uid=1000 \
 git clone https://github.com/authlete/java-oauth-server.git
-RUN cp -rf /java-oauth-server/ /workspace
-RUN rm -rf /java-oauth-server/
+RUN chown -R vscode:vscode /workspace/java-oauth-server
 
-WORKDIR /workspace
-
-RUN chown -R vscode:vscode /workspace
 
 ENV M2_HOME='/opt/apache-maven-3.8.5'
 ENV PATH="$M2_HOME/bin:$PATH"

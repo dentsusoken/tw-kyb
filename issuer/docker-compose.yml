@@ -5,6 +5,9 @@ services:
       context: .
     volumes:
       - .:/workspace:cached
+      - java-oauth-server:/workspace/java-oauth-server
     working_dir: /workspace
     network_mode: host
     tty: true
+volumes:
+  java-oauth-server:
